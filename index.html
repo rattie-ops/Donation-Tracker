@@ -38,7 +38,7 @@
 }
 body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--t1); min-height: 100vh; display: flex; }
 
-/* ── SIDEBAR ── */
+/* – SIDEBAR – */
 .sidebar { width: var(–sidebar); min-height: 100vh; background: #1a2550; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; transition: width .22s ease; overflow: hidden; }
 body { font-family: ‘Inter’, -apple-system, BlinkMacSystemFont, sans-serif; background: var(–bg); color: var(–t1); min-height: 100vh; display: flex; overflow-x: hidden; }
 .sidebar.collapsed { width: 64px; }
@@ -61,7 +61,7 @@ body { font-family: ‘Inter’, -apple-system, BlinkMacSystemFont, sans-serif; 
 .nav-badge { margin-left: auto; background: #f59e0b; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 20px; }
 .sidebar-footer { padding: 1rem 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11px; color: rgba(255,255,255,0.3); }
 
-/* ── MAIN ── */
+/* – MAIN – */
 .main { margin-left: var(–sidebar); flex: 1; min-height: 100vh; transition: margin-left .22s ease; }
 .main.collapsed { margin-left: 64px; }
 .topbar { height: 56px; background: var(–bg1); border-bottom: 1px solid var(–bt); display: flex; align-items: center; padding: 0 1.75rem; position: sticky; top: 0; z-index: 50; box-shadow: var(–shadow-sm); }
@@ -72,7 +72,7 @@ body { font-family: ‘Inter’, -apple-system, BlinkMacSystemFont, sans-serif; 
 .reminder-pill.show { display: flex; }
 .content { padding: 1.75rem; }
 
-/* ── METRICS ── */
+/* – METRICS – */
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 14px; margin-bottom: 1.75rem; }
 .metric { background: var(–bg1); border: 1px solid var(–bt); border-radius: var(–rl); padding: 1.25rem; box-shadow: var(–shadow-sm); position: relative; overflow: hidden; transition: box-shadow .15s, transform .15s; }
 .metric[onclick]:hover { box-shadow: var(–shadow-md); transform: translateY(-1px); }
@@ -87,7 +87,7 @@ body { font-family: ‘Inter’, -apple-system, BlinkMacSystemFont, sans-serif; 
 .mv { font-size: 26px; font-weight: 700; color: var(–t1); letter-spacing: -.02em; }
 .ms { font-size: 12px; color: var(–t3); margin-top: 3px; }
 
-/* ── META PROGRESS ── */
+/* – META PROGRESS – */
 .meta-progress-card { background: var(–bg1); border: 1px solid var(–bt); border-radius: var(–rl); padding: 1.25rem; margin-bottom: 1.75rem; box-shadow: var(–shadow-sm); }
 .meta-progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .meta-progress-header span { font-size: 13px; font-weight: 600; color: var(–t1); }
@@ -99,7 +99,7 @@ body { font-family: ‘Inter’, -apple-system, BlinkMacSystemFont, sans-serif; 
 .progress-fill { height: 100%; border-radius: 999px; transition: width .6s cubic-bezier(.4,0,.2,1); }
 .progress-lbl { display: flex; justify-content: space-between; font-size: 12px; color: var(–t2); font-weight: 500; }
 
-/* ── CARDS / SECTIONS ── */
+/* – CARDS / SECTIONS – */
 .sec { display: none; }
 .sec.active { display: block; }
 .page-title { font-size: 20px; font-weight: 700; margin-bottom: 1.5rem; color: var(–t1); letter-spacing: -.02em; }
@@ -111,7 +111,7 @@ body { font-family: ‘Inter’, -apple-system, BlinkMacSystemFont, sans-serif; 
 .li { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(–t2); }
 .ld { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
 
-/* ── TABLE ── */
+/* – TABLE – */
 .filters { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
 .filters input,.filters select { font-size: 13px; padding: 8px 12px; border-radius: var(–rm); border: 1px solid var(–bt); background: var(–bg1); color: var(–t1); box-shadow: var(–shadow-sm); transition: border-color .15s; }
 .filters input:focus,.filters select:focus { outline: none; border-color: var(–blue); }
@@ -125,7 +125,7 @@ tr.editing td { background: var(–blue-l); }
 tr:not(.editing):hover td { background: var(–bg2); }
 tr.overdue td { background: rgba(239,68,68,0.05); }
 
-/* ── TYPE BADGES ── */
+/* – TYPE BADGES – */
 .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; letter-spacing: .02em; }
 .b-tipo-escuela    { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
 .b-tipo-kolel      { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
@@ -139,7 +139,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 .b-ok   { background: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
 .amount { font-weight: 600; font-variant-numeric: tabular-nums; color: var(–t1); }
 
-/* ── ICON BUTTONS ── */
+/* – ICON BUTTONS – */
 .ib { width: 30px; height: 30px; border-radius: var(–rm); border: 1px solid var(–bt); background: var(–bg1); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; transition: all .12s; box-shadow: var(–shadow-sm); }
 .ib:hover { background: var(–bg2); border-color: var(–bs); transform: translateY(-1px); box-shadow: var(–shadow-md); }
 .ib.save,.ib.ok { border-color: #86efac; }
@@ -152,7 +152,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 .confirm-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: var(–rm); border: 1px solid #86efac; color: #15803d; background: #f0fdf4; cursor: pointer; white-space: nowrap; transition: all .12s; }
 .confirm-btn:hover { background: #dcfce7; transform: translateY(-1px); box-shadow: var(–shadow-sm); }
 
-/* ── FORMS ── */
+/* – FORMS – */
 .fg { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .fgi { display: flex; flex-direction: column; gap: 6px; }
 .fgi label { font-size: 12px; color: var(–t2); font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
@@ -167,7 +167,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 .ok-msg { background: #f0fdf4; color: #15803d; border-radius: var(–rm); padding: 10px 16px; font-size: 13px; font-weight: 500; margin-bottom: 1rem; display: none; border: 1px solid #86efac; }
 .err-msg { background: #fef2f2; color: #b91c1c; border-radius: var(–rm); padding: 10px 16px; font-size: 13px; font-weight: 500; margin-bottom: 1rem; display: none; border: 1px solid #fca5a5; }
 
-/* ── CONFIG ── */
+/* – CONFIG – */
 .cc { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
 .ci { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(–bt); }
 .ci:last-child { border-bottom: none; }
@@ -191,7 +191,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 .spinner { width: 18px; height: 18px; border: 2px solid var(–bt); border-top-color: var(–blue); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── LOGIN ── */
+/* – LOGIN – */
 .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1a2550 0%, #1e3a80 50%, #1a2550 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; }
 .login-card { background: var(–bg1); border-radius: 20px; padding: 2.5rem 2rem; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
 .login-logo { text-align: center; margin-bottom: 2rem; }
@@ -208,7 +208,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 .login-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 .login-err { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: var(–rm); padding: 9px 14px; font-size: 13px; font-weight: 500; margin-bottom: 1rem; display: none; text-align: center; }
 
-/* ── RESPONSIVE ── */
+/* – RESPONSIVE – */
 @media(max-width:1024px) and (min-width:769px){
 :root { –sidebar: 64px; }
 .sidebar-logo, .nav-section, .nav-item span, .sidebar-footer { display: none; }
@@ -585,7 +585,7 @@ th, td { padding: 8px 9px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-// ── Supabase config ──
+// -- Supabase config --
 const SB_URL = 'https://luzyensffwvfslurmqpw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1enllbnNmZnd2ZnNsdXJtcXB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTI3ODMsImV4cCI6MjA4OTg2ODc4M30.5DokAdH86kK7U9uNQWT2OCbaBOfpyYK7C0i0QJrM9i4';
 const H = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
@@ -600,7 +600,7 @@ async function sb(table, method='GET', body=null, query='') {
   return text ? JSON.parse(text) : [];
 }
 
-// ── Icons ──
+// -- Icons --
 const SVG = {
   edit:    c=>`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
   save:    c=>`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
@@ -611,12 +611,12 @@ const SVG = {
 const IC = {edit:'#888780',save:'#0F6E56',del:'#A32D2D',cancel:'#888780',confirm:'#0F6E56'};
 const ib = (cls,fn,ico) => `<button class="ib ${cls}" onclick="${fn}">${SVG[ico](IC[ico])}</button>`;
 
-// ── State ──
+// -- State --
 let donaciones=[], pendientes=[], tipos=[], paises=[], metas=[], metaActiva=null;
 let editDon=null, editPend=null, editTipo=null, editPais=null;
 const COLORS = ['#3266ad','#7F77DD','#1D9E75','#D85A30','#D4537E','#639922','#BA7517','#E24B4A'];
 
-// ── Helpers ──
+// -- Helpers --
 function today() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function fmt(n) { return '$'+Number(n||0).toLocaleString('en-US'); }
 function fmtD(d) { if(!d)return'—'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0].slice(2)}`; }
@@ -646,7 +646,7 @@ function refreshSelects() {
   ['fp-don','fp-pend'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const sv=el.value;el.innerHTML='<option value="">Todos los países</option>'+paises.map(p=>`<option${sv===p?' selected':''}>${p}</option>`).join('');});
 }
 
-// ── Load all data from Supabase ──
+// -- Load all data from Supabase --
 async function loadAll() {
   document.getElementById('don-body').innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spinner"></div> Cargando datos...</div></td></tr>';
   try {
@@ -687,7 +687,7 @@ async function saveConfig(key, value) {
   }
 }
 
-// ── Metrics ──
+// -- Metrics --
 function renderMetrics() {
   const tD=donaciones.reduce((a,d)=>a+(d.monto||0),0);
   const tP=pendientes.reduce((a,p)=>a+(p.monto||0),0);
@@ -739,7 +739,7 @@ function renderDashPending() {
   }).join('');
 }
 
-// ── Donaciones table ──
+// -- Donaciones table --
 function renderDonaciones() {
   const q=(document.getElementById('search-don').value||'').toLowerCase();
   const ft=document.getElementById('ft-don').value;
@@ -797,7 +797,7 @@ async function delDon(id){
   } catch(e){ alert('Error: '+e.message); }
 }
 
-// ── Pendientes table ──
+// -- Pendientes table --
 function renderPendientes() {
   const q=(document.getElementById('search-pend').value||'').toLowerCase();
   const ft=document.getElementById('ft-pend').value;
@@ -869,7 +869,7 @@ async function confirmPend(id) {
   } catch(e){ alert('Error: '+e.message); }
 }
 
-// ── Config ──
+// -- Config --
 function renderConfigTipos(){
   document.getElementById('list-tipos').innerHTML=tipos.map((t,i)=>{
     if(editTipo===i)return`<div class="ci"><input id="eti" value="${t}" onkeydown="if(event.key==='Enter')saveTipo(${i})">${ib('save',`saveTipo(${i})`,'save')}${ib('cancel','cancelTipo()','cancel')}</div>`;
@@ -894,7 +894,7 @@ async function savePais(i){const v=document.getElementById('epi').value.trim();i
 async function delPais(i){if(!confirm(`¿Eliminar "${paises[i]}"?`))return;paises.splice(i,1);await saveConfig('paises',paises);renderConfigPaises();refreshSelects();}
 async function addPais(){const inp=document.getElementById('new-pais'),v=inp.value.trim();if(!v||paises.includes(v))return;paises.push(v);inp.value='';await saveConfig('paises',paises);renderConfigPaises();refreshSelects();}
 
-// ── Metas ──
+// -- Metas --
 async function loadMetas() {
   try {
     const res = await sb('metas','GET',null,'?order=anio.desc');
@@ -958,7 +958,7 @@ async function delMeta(id) {
   } catch(e){ showErr('metas-err','Error: '+e.message); }
 }
 
-// ── Add forms ──
+// -- Add forms --
 async function addDonacion(){
   const fecha=document.getElementById('nd-fecha').value;
   const monto=parseFloat(document.getElementById('nd-monto').value)||0;
@@ -996,7 +996,7 @@ async function addPendiente(){
   btn.disabled=false; btn.textContent='Registrar pendiente';
 }
 
-// ── Charts ──
+// -- Charts --
 let charts={};
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function renderCharts(prefix){
@@ -1013,8 +1013,8 @@ function renderCharts(prefix){
   document.getElementById(prefix+'leg-pais').innerHTML=pL.map((l,i)=>`<div class="li"><div class="ld" style="background:${COLORS.slice().reverse()[i%COLORS.length]}"></div>${l}: ${fmt(pD[i])}</div>`).join('');
 }
 
-// ── Navigation ──
-// ── Config inner tabs ──
+// -- Navigation --
+// -- Config inner tabs --
 function switchCfgTab(tab) {
   document.querySelectorAll('.cfg-tab').forEach(t => {
     const isActive = t.getAttribute('onclick').includes(`'${tab}'`);
@@ -1098,7 +1098,7 @@ async function addUser() {
 
 const PAGE_TITLES={dashboard:'Dashboard',donaciones:'Donaciones confirmadas',pendientes:'Donaciones pendientes','nueva-don':'Nueva donación','nueva-pend':'Nuevo pendiente',config:'Configuración'};
 
-// ── Excel Import ──
+// -- Excel Import --
 let importRows = [];
 
 function normalizeKey(k) {
@@ -1330,7 +1330,7 @@ function toggleSidebar(){
   document.querySelector('.main').classList.toggle('collapsed');
 }
 
-// ── Login ──
+// -- Login --
 let USERS = [];
 const SESSION_KEY = 'don_auth';
 let currentUser = null;
@@ -1385,7 +1385,7 @@ async function checkAuth() {
   document.getElementById('login-user').focus();
 }
 
-// ── Init ──
+// -- Init --
 document.getElementById('nd-fecha').value=today();
 document.getElementById('np-fecha').value=today();
 checkAuth();
