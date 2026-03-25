@@ -1,10 +1,8 @@
 <!DOCTYPE html>
-
-
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tracker de Donaciones</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a2550'/><circle cx='50' cy='50' r='34' fill='none' stroke='white' stroke-width='7'/><path d='M57 38a8 8 0 0 0-7-4h-8a8 8 0 0 0 0 16h8a8 8 0 0 1 0 16h-8a8 8 0 0 1-7-4' fill='none' stroke='white' stroke-width='7' stroke-linecap='round'/><line x1='50' y1='28' x2='50' y2='34' stroke='white' stroke-width='7' stroke-linecap='round'/><line x1='50' y1='66' x2='50' y2='72' stroke='white' stroke-width='7' stroke-linecap='round'/></svg>">
 <style>
@@ -15,17 +13,17 @@
   --blue-d:  #1557c0;
   --blue-l:  #e8f0fd;
   --blue-m:  #b8d0fa;
-  --bg:      #f0f2f5;
+  --bg:      #f0f2f7;
   --bg1:     #ffffff;
   --bg2:     #f5f6fa;
-  --bg3:     #eaecf2;
+  --bg3:     #eaecf4;
   --t1:      #0f1117;
   --t2:      #5a5f7a;
   --t3:      #9ea3bc;
   --bt:      rgba(30,40,100,0.08);
   --bs:      rgba(30,40,100,0.15);
   --rm: 10px; --rl: 14px; --sidebar: 228px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
 }
 @media(prefers-color-scheme:dark){
@@ -37,95 +35,95 @@
     --shadow-sm:0 1px 3px rgba(0,0,0,0.3); --shadow-md:0 4px 12px rgba(0,0,0,0.3);
   }
 }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--t1); min-height: 100vh; display: flex; }
 
-/* – SIDEBAR – */
-.sidebar { width: var(–sidebar); min-height: 100vh; background: #1a2550; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; transition: width .22s ease; overflow: hidden; }
-body { font-family: ‘Inter’, -apple-system, BlinkMacSystemFont, sans-serif; background: var(–bg); color: var(–t1); min-height: 100vh; display: flex; overflow-x: hidden; }
+/* ── SIDEBAR ── */
+.sidebar { width: var(--sidebar); min-height: 100vh; background: #1a2550; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; transition: width .22s ease; overflow: hidden; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--t1); min-height: 100vh; display: flex; overflow-x: hidden; }
 .sidebar.collapsed { width: 64px; }
 .sidebar.collapsed .sidebar-logo p, .sidebar.collapsed .sidebar-logo h2, .sidebar.collapsed .nav-section, .sidebar.collapsed .nav-item span, .sidebar.collapsed .nav-badge, .sidebar.collapsed .sidebar-footer { opacity: 0; pointer-events: none; width: 0; overflow: hidden; margin: 0; padding: 0; }
 .sidebar.collapsed .nav-item { justify-content: center; padding: 10px; gap: 0; }
 .sidebar.collapsed .sidebar-logo { padding: 1.25rem 0; display: flex; justify-content: center; }
 .sidebar.collapsed .nav-item { position: relative; }
-.sidebar.collapsed .nav-item:hover::after { content: attr(data-label); position: absolute; left: 72px; background: #1a2550; color: #fff; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: var(–rm); white-space: nowrap; z-index: 999; pointer-events: none; box-shadow: var(–shadow-md); }
+.sidebar.collapsed .nav-item:hover::after { content: attr(data-label); position: absolute; left: 72px; background: #1a2550; color: #fff; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: var(--rm); white-space: nowrap; z-index: 999; pointer-events: none; box-shadow: var(--shadow-md); }
 .sidebar-logo { padding: 1.5rem 1.25rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); transition: padding .22s ease; }
 .sidebar-logo p { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 3px; }
 .sidebar-logo h2 { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -.02em; }
 .sidebar-nav { flex: 1; padding: 0.75rem; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
 .nav-section { font-size: 10px; color: rgba(255,255,255,0.3); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 0.85rem 0.5rem 0.3rem; }
-.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(–rm); font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,0.6); cursor: pointer; border: none; background: none; width: 100%; text-align: left; transition: all .12s; position: relative; overflow: hidden; white-space: nowrap; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--rm); font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,0.6); cursor: pointer; border: none; background: none; width: 100%; text-align: left; transition: all .12s; position: relative; overflow: hidden; white-space: nowrap; }
 .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .nav-item.active { background: rgba(255,255,255,0.15); color: #fff; }
-.nav-item.active::before { content:’’; position:absolute; left:0; top:20%; bottom:20%; width:3px; background:#5b9cf6; border-radius:0 3px 3px 0; }
+.nav-item.active::before { content:''; position:absolute; left:0; top:20%; bottom:20%; width:3px; background:#5b9cf6; border-radius:0 3px 3px 0; }
 .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .nav-item span { transition: opacity .15s; }
 .nav-badge { margin-left: auto; background: #f59e0b; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 20px; }
 .sidebar-footer { padding: 1rem 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11px; color: rgba(255,255,255,0.3); }
 
-/* – MAIN – */
-.main { margin-left: var(–sidebar); flex: 1; min-height: 100vh; transition: margin-left .22s ease; }
+/* ── MAIN ── */
+.main { margin-left: var(--sidebar); flex: 1; min-height: 100vh; transition: margin-left .22s ease; }
 .main.collapsed { margin-left: 64px; }
-.topbar { height: 56px; background: var(–bg1); border-bottom: 1px solid var(–bt); display: flex; align-items: center; padding: 0 1.75rem; position: sticky; top: 0; z-index: 50; box-shadow: var(–shadow-sm); }
-.topbar h1 { font-size: 15px; font-weight: 600; color: var(–t1); }
+.topbar { height: 56px; background: var(--bg1); border-bottom: 1px solid var(--bt); display: flex; align-items: center; padding: 0 1.75rem; position: sticky; top: 0; z-index: 50; box-shadow: var(--shadow-sm); }
+.topbar h1 { font-size: 15px; font-weight: 600; color: var(--t1); }
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-#toggle-btn { display: flex; }
 .reminder-pill { display: none; align-items: center; gap: 6px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 999px; border: 1px solid #fde68a; }
 .reminder-pill.show { display: flex; }
 .content { padding: 1.75rem; }
 
-/* – METRICS – */
+/* ── METRICS ── */
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 14px; margin-bottom: 1.75rem; }
-.metric { background: var(–bg1); border: 1px solid var(–bt); border-radius: var(–rl); padding: 1.25rem; box-shadow: var(–shadow-sm); position: relative; overflow: hidden; transition: box-shadow .15s, transform .15s; }
-.metric[onclick]:hover { box-shadow: var(–shadow-md); transform: translateY(-1px); }
-.metric::after { content:’’; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, var(–blue), #5b9cf6); border-radius: var(–rl) var(–rl) 0 0; }
+.metric { background: var(--bg1); border: 1px solid var(--bt); border-radius: var(--rl); padding: 1.25rem; box-shadow: var(--shadow-sm); position: relative; overflow: hidden; transition: box-shadow .15s, transform .15s; }
+.metric[onclick]:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.metric::after { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, var(--blue), #5b9cf6); border-radius: var(--rl) var(--rl) 0 0; }
 .metric.warn { background: #fffbeb; border-color: #fde68a; }
 .metric.warn::after { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
 .metric.warn .mv,.metric.warn .ml { color: #92400e; }
 .metric.reached { background: #f0fdf4; border-color: #86efac; }
 .metric.reached::after { background: linear-gradient(90deg, #16a34a, #4ade80); }
 .metric.reached .mv,.metric.reached .ml { color: #14532d; }
-.ml { font-size: 11px; color: var(–t2); margin-bottom: 6px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
-.mv { font-size: 26px; font-weight: 700; color: var(–t1); letter-spacing: -.02em; }
-.ms { font-size: 12px; color: var(–t3); margin-top: 3px; }
+.ml { font-size: 11px; color: var(--t2); margin-bottom: 6px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.mv { font-size: 26px; font-weight: 700; color: var(--t1); letter-spacing: -.02em; }
+.ms { font-size: 12px; color: var(--t3); margin-top: 3px; }
 
-/* – META PROGRESS – */
-.meta-progress-card { background: var(–bg1); border: 1px solid var(–bt); border-radius: var(–rl); padding: 1.25rem; margin-bottom: 1.75rem; box-shadow: var(–shadow-sm); }
+/* ── META PROGRESS ── */
+.meta-progress-card { background: var(--bg1); border: 1px solid var(--bt); border-radius: var(--rl); padding: 1.25rem; margin-bottom: 1.75rem; box-shadow: var(--shadow-sm); }
 .meta-progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.meta-progress-header span { font-size: 13px; font-weight: 600; color: var(–t1); }
+.meta-progress-header span { font-size: 13px; font-weight: 600; color: var(--t1); }
 .meta-pct-badge { font-size: 13px; font-weight: 700; padding: 4px 14px; border-radius: 999px; }
 .meta-pct-badge.under { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
 .meta-pct-badge.mid   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
 .meta-pct-badge.over  { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
-.progress-bg { height: 10px; background: var(–bg3); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
+.progress-bg { height: 10px; background: var(--bg3); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
 .progress-fill { height: 100%; border-radius: 999px; transition: width .6s cubic-bezier(.4,0,.2,1); }
-.progress-lbl { display: flex; justify-content: space-between; font-size: 12px; color: var(–t2); font-weight: 500; }
+.progress-lbl { display: flex; justify-content: space-between; font-size: 12px; color: var(--t2); font-weight: 500; }
 
-/* – CARDS / SECTIONS – */
+/* ── CARDS / SECTIONS ── */
 .sec { display: none; }
 .sec.active { display: block; }
-.page-title { font-size: 20px; font-weight: 700; margin-bottom: 1.5rem; color: var(–t1); letter-spacing: -.02em; }
-.card { background: var(–bg1); border: 1px solid var(–bt); border-radius: var(–rl); padding: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.03); }
+.page-title { font-size: 20px; font-weight: 700; margin-bottom: 1.5rem; color: var(--t1); letter-spacing: -.02em; }
+.card { background: var(--bg1); border: 1px solid var(--bt); border-radius: var(--rl); padding: 1.25rem; box-shadow: var(--shadow-sm); }
 .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
-.ct { font-size: 11px; color: var(–t2); font-weight: 700; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .06em; }
+.ct { font-size: 11px; color: var(--t2); font-weight: 700; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .06em; }
 .cw { position: relative; height: 200px; margin-bottom: 0.75rem; }
 .leg { display: flex; flex-wrap: wrap; gap: 8px; }
-.li { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(–t2); }
+.li { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--t2); }
 .ld { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
 
-/* – TABLE – */
+/* ── TABLE ── */
 .filters { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
-.filters input,.filters select { font-size: 13px; padding: 8px 12px; border-radius: var(–rm); border: 1px solid var(–bt); background: var(–bg1); color: var(–t1); box-shadow: var(–shadow-sm); transition: border-color .15s; }
-.filters input:focus,.filters select:focus { outline: none; border-color: var(–blue); }
+.filters input,.filters select { font-size: 13px; padding: 8px 12px; border-radius: var(--rm); border: 1px solid var(--bt); background: var(--bg1); color: var(--t1); box-shadow: var(--shadow-sm); transition: border-color .15s; }
+.filters input:focus,.filters select:focus { outline: none; border-color: var(--blue); }
 .filters input { flex: 1; min-width: 180px; }
 .tbl-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th { text-align: left; font-weight: 700; font-size: 10.5px; color: var(–t3); padding: 10px 12px; border-bottom: 1px solid var(–bt); white-space: nowrap; text-transform: uppercase; letter-spacing: .05em; background: var(–bg2); }
-td { padding: 10px 12px; border-bottom: 1px solid var(–bt); vertical-align: middle; }
+th { text-align: left; font-weight: 700; font-size: 10.5px; color: var(--t3); padding: 10px 12px; border-bottom: 1px solid var(--bt); white-space: nowrap; text-transform: uppercase; letter-spacing: .05em; background: var(--bg2); }
+td { padding: 10px 12px; border-bottom: 1px solid var(--bt); vertical-align: middle; }
 tr:last-child td { border-bottom: none; }
-tr.editing td { background: var(–blue-l); }
-tr:not(.editing):hover td { background: var(–bg2); }
+tr.editing td { background: var(--blue-l); }
+tr:not(.editing):hover td { background: var(--bg2); }
 tr.overdue td { background: rgba(239,68,68,0.05); }
 
-/* – TYPE BADGES – */
+/* ── TYPE BADGES ── */
 .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; letter-spacing: .02em; }
 .b-tipo-escuela    { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
 .b-tipo-kolel      { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
@@ -133,148 +131,141 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 .b-tipo-personal   { background: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
 .b-tipo-construccion { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
 .b-tipo-instirucion { background: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; }
-.b-tipo-default    { background: var(–bg2); color: var(–t2); border: 1px solid var(–bt); }
+.b-tipo-default    { background: var(--bg2); color: var(--t2); border: 1px solid var(--bt); }
 .b-over { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 .b-near { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
 .b-ok   { background: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
-.amount { font-weight: 600; font-variant-numeric: tabular-nums; color: var(–t1); }
+.amount { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--t1); }
 
-/* – ICON BUTTONS – */
-.ib { width: 30px; height: 30px; border-radius: var(–rm); border: 1px solid var(–bt); background: var(–bg1); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; transition: all .12s; box-shadow: var(–shadow-sm); }
-.ib:hover { background: var(–bg2); border-color: var(–bs); transform: translateY(-1px); box-shadow: var(–shadow-md); }
+/* ── ICON BUTTONS ── */
+.ib { width: 30px; height: 30px; border-radius: var(--rm); border: 1px solid var(--bt); background: var(--bg1); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; transition: all .12s; box-shadow: var(--shadow-sm); }
+.ib:hover { background: var(--bg2); border-color: var(--bs); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 .ib.save,.ib.ok { border-color: #86efac; }
 .ib.save:hover,.ib.ok:hover { background: #f0fdf4; }
 .ib.del { border-color: #fca5a5; }
 .ib.del:hover { background: #fee2e2; }
 .ib svg { display: block; }
-.ii { font-size: 12px; padding: 6px 8px; border-radius: var(–rm); border: 1px solid var(–bt); background: var(–bg1); color: var(–t1); width: 100%; }
-.is { font-size: 12px; padding: 6px 8px; border-radius: var(–rm); border: 1px solid var(–bt); background: var(–bg1); color: var(–t1); width: 100%; }
-.confirm-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: var(–rm); border: 1px solid #86efac; color: #15803d; background: #f0fdf4; cursor: pointer; white-space: nowrap; transition: all .12s; }
-.confirm-btn:hover { background: #dcfce7; transform: translateY(-1px); box-shadow: var(–shadow-sm); }
+.ii { font-size: 12px; padding: 6px 8px; border-radius: var(--rm); border: 1px solid var(--bt); background: var(--bg1); color: var(--t1); width: 100%; }
+.is { font-size: 12px; padding: 6px 8px; border-radius: var(--rm); border: 1px solid var(--bt); background: var(--bg1); color: var(--t1); width: 100%; }
+.confirm-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: var(--rm); border: 1px solid #86efac; color: #15803d; background: #f0fdf4; cursor: pointer; white-space: nowrap; transition: all .12s; }
+.confirm-btn:hover { background: #dcfce7; transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 
-/* – FORMS – */
+/* ── FORMS ── */
 .fg { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .fgi { display: flex; flex-direction: column; gap: 6px; }
-.fgi label { font-size: 12px; color: var(–t2); font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
-.fgi input,.fgi select,.fgi textarea { font-size: 14px; border-radius: var(–rm); border: 1px solid var(–bt); padding: 10px 12px; background: var(–bg1); color: var(–t1); transition: border-color .15s, box-shadow .15s; box-shadow: var(–shadow-sm); }
-.fgi input:focus,.fgi select:focus,.fgi textarea:focus { outline: none; border-color: var(–blue); box-shadow: 0 0 0 3px rgba(30,107,230,.12); }
+.fgi label { font-size: 12px; color: var(--t2); font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+.fgi input,.fgi select,.fgi textarea { font-size: 14px; border-radius: var(--rm); border: 1px solid var(--bt); padding: 10px 12px; background: var(--bg1); color: var(--t1); transition: border-color .15s, box-shadow .15s; box-shadow: var(--shadow-sm); }
+.fgi input:focus,.fgi select:focus,.fgi textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(30,107,230,.12); }
 .fgi textarea { resize: vertical; min-height: 80px; }
 .ff { grid-column: 1/-1; }
-.btn { background: var(–blue); color: #fff; border: none; border-radius: var(–rm); padding: 11px 24px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; box-shadow: 0 2px 8px rgba(30,107,230,.3); letter-spacing: .01em; }
-.btn:hover { background: var(–blue-d); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(30,107,230,.4); }
+.btn { background: var(--blue); color: #fff; border: none; border-radius: var(--rm); padding: 11px 24px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; box-shadow: 0 2px 8px rgba(30,107,230,.3); letter-spacing: .01em; }
+.btn:hover { background: var(--blue-d); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(30,107,230,.4); }
 .btn:active { transform: translateY(0); }
 .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-.ok-msg { background: #f0fdf4; color: #15803d; border-radius: var(–rm); padding: 10px 16px; font-size: 13px; font-weight: 500; margin-bottom: 1rem; display: none; border: 1px solid #86efac; }
-.err-msg { background: #fef2f2; color: #b91c1c; border-radius: var(–rm); padding: 10px 16px; font-size: 13px; font-weight: 500; margin-bottom: 1rem; display: none; border: 1px solid #fca5a5; }
+.ok-msg { background: #f0fdf4; color: #15803d; border-radius: var(--rm); padding: 10px 16px; font-size: 13px; font-weight: 500; margin-bottom: 1rem; display: none; border: 1px solid #86efac; }
+.err-msg { background: #fef2f2; color: #b91c1c; border-radius: var(--rm); padding: 10px 16px; font-size: 13px; font-weight: 500; margin-bottom: 1rem; display: none; border: 1px solid #fca5a5; }
 
-/* – CONFIG – */
+/* ── CONFIG ── */
 .cc { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-.ci { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(–bt); }
+.ci { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--bt); }
 .ci:last-child { border-bottom: none; }
-.ci span { flex: 1; font-size: 13px; color: var(–t1); font-weight: 500; }
-.ci input { flex: 1; font-size: 13px; padding: 5px 9px; border-radius: var(–rm); border: 1px solid var(–bt); background: var(–bg1); color: var(–t1); }
+.ci span { flex: 1; font-size: 13px; color: var(--t1); font-weight: 500; }
+.ci input { flex: 1; font-size: 13px; padding: 5px 9px; border-radius: var(--rm); border: 1px solid var(--bt); background: var(--bg1); color: var(--t1); }
 .ar { display: flex; gap: 8px; margin-top: 10px; }
-.ar input { flex: 1; font-size: 13px; padding: 8px 10px; border-radius: var(–rm); border: 1px solid var(–bt); background: var(–bg1); color: var(–t1); }
-.ba { font-size: 12px; padding: 8px 16px; border-radius: var(–rm); border: 1px solid #86efac; color: #15803d; background: #f0fdf4; cursor: pointer; font-weight: 600; white-space: nowrap; transition: all .12s; }
+.ar input { flex: 1; font-size: 13px; padding: 8px 10px; border-radius: var(--rm); border: 1px solid var(--bt); background: var(--bg1); color: var(--t1); }
+.ba { font-size: 12px; padding: 8px 16px; border-radius: var(--rm); border: 1px solid #86efac; color: #15803d; background: #f0fdf4; cursor: pointer; font-weight: 600; white-space: nowrap; transition: all .12s; }
 .ba:hover { background: #dcfce7; }
 .meta-form-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 1.25rem; }
-.meta-form-row label { font-size: 12px; color: var(–t2); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
-.meta-form-row input { font-size: 14px; padding: 9px 12px; border-radius: var(–rm); border: 1px solid var(–bt); background: var(–bg1); color: var(–t1); width: 180px; box-shadow: var(–shadow-sm); }
-.empty { text-align: center; padding: 2.5rem; color: var(–t3); font-size: 13px; }
+.meta-form-row label { font-size: 12px; color: var(--t2); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.meta-form-row input { font-size: 14px; padding: 9px 12px; border-radius: var(--rm); border: 1px solid var(--bt); background: var(--bg1); color: var(--t1); width: 180px; box-shadow: var(--shadow-sm); }
+.empty { text-align: center; padding: 2.5rem; color: var(--t3); font-size: 13px; }
 .pending-list { display: flex; flex-direction: column; gap: 6px; }
-.pending-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(–rm); background: var(–bg2); font-size: 13px; border: 1px solid var(–bt); transition: background .1s; }
-.pending-item:hover { background: var(–bg3); }
-.pending-item-name { font-weight: 600; color: var(–t1); }
-.pending-item-sub { font-size: 12px; color: var(–t2); margin-top: 1px; }
+.pending-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--rm); background: var(--bg2); font-size: 13px; border: 1px solid var(--bt); transition: background .1s; }
+.pending-item:hover { background: var(--bg3); }
+.pending-item-name { font-weight: 600; color: var(--t1); }
+.pending-item-sub { font-size: 12px; color: var(--t2); margin-top: 1px; }
 .pending-item-right { display: flex; align-items: center; gap: 8px; }
-.loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 3rem; color: var(–t2); font-size: 13px; }
-.spinner { width: 18px; height: 18px; border: 2px solid var(–bt); border-top-color: var(–blue); border-radius: 50%; animation: spin .7s linear infinite; }
+.loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 3rem; color: var(--t2); font-size: 13px; }
+.spinner { width: 18px; height: 18px; border: 2px solid var(--bt); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* – LOGIN – */
+/* ── LOGIN ── */
 .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1a2550 0%, #1e3a80 50%, #1a2550 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.login-card { background: var(–bg1); border-radius: 20px; padding: 2.5rem 2rem; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.login-card { background: var(--bg1); border-radius: 20px; padding: 2.5rem 2rem; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
 .login-logo { text-align: center; margin-bottom: 2rem; }
-.login-logo-icon { width: 52px; height: 52px; background: var(–blue-l); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
-.login-logo-icon svg { width: 26px; height: 26px; stroke: var(–blue); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.login-logo p { font-size: 11px; color: var(–t3); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
-.login-logo h2 { font-size: 22px; font-weight: 700; color: var(–t1); letter-spacing: -.02em; }
+.login-logo-icon { width: 52px; height: 52px; background: var(--blue-l); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+.login-logo-icon svg { width: 26px; height: 26px; stroke: var(--blue); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.login-logo p { font-size: 11px; color: var(--t3); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
+.login-logo h2 { font-size: 22px; font-weight: 700; color: var(--t1); letter-spacing: -.02em; }
 .login-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
-.login-field label { font-size: 11px; color: var(–t2); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-.login-field input { font-size: 14px; padding: 11px 14px; border-radius: var(–rm); border: 1.5px solid var(–bt); background: var(–bg2); color: var(–t1); transition: all .15s; }
-.login-field input:focus { outline: none; border-color: var(–blue); background: var(–bg1); box-shadow: 0 0 0 3px rgba(30,107,230,.12); }
-.login-btn { width: 100%; padding: 12px; background: var(–blue); color: #fff; border: none; border-radius: var(–rm); font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 0.75rem; transition: all .15s; box-shadow: 0 4px 14px rgba(30,107,230,.35); letter-spacing: .01em; }
-.login-btn:hover { background: var(–blue-d); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(30,107,230,.45); }
+.login-field label { font-size: 11px; color: var(--t2); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.login-field input { font-size: 14px; padding: 11px 14px; border-radius: var(--rm); border: 1.5px solid var(--bt); background: var(--bg2); color: var(--t1); transition: all .15s; }
+.login-field input:focus { outline: none; border-color: var(--blue); background: var(--bg1); box-shadow: 0 0 0 3px rgba(30,107,230,.12); }
+.login-btn { width: 100%; padding: 12px; background: var(--blue); color: #fff; border: none; border-radius: var(--rm); font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 0.75rem; transition: all .15s; box-shadow: 0 4px 14px rgba(30,107,230,.35); letter-spacing: .01em; }
+.login-btn:hover { background: var(--blue-d); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(30,107,230,.45); }
 .login-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-.login-err { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: var(–rm); padding: 9px 14px; font-size: 13px; font-weight: 500; margin-bottom: 1rem; display: none; text-align: center; }
+.login-err { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: var(--rm); padding: 9px 14px; font-size: 13px; font-weight: 500; margin-bottom: 1rem; display: none; text-align: center; }
 
-/* – RESPONSIVE – */
+/* ── RESPONSIVE ── */
 @media(max-width:1024px) and (min-width:769px){
-:root { –sidebar: 64px; }
-.sidebar-logo, .nav-section, .nav-item span, .sidebar-footer { display: none; }
-.nav-item { justify-content: center; padding: 12px; }
-.nav-item.active::before { display: none; }
-.nav-badge { position: absolute; top: 6px; right: 6px; font-size: 9px; padding: 1px 4px; }
-.chart-grid, .cc, .fg { grid-template-columns: 1fr; }
-.content { padding: 1.25rem; }
+  :root { --sidebar: 64px; }
+  .sidebar-logo, .nav-section, .nav-item span, .sidebar-footer { display: none; }
+  .nav-item { justify-content: center; padding: 12px; }
+  .nav-item.active::before { display: none; }
+  .nav-badge { position: absolute; top: 6px; right: 6px; font-size: 9px; padding: 1px 4px; }
+  .chart-grid, .cc, .fg { grid-template-columns: 1fr; }
+  .content { padding: 1.25rem; }
 }
 @media(max-width:768px){
-html { height: -webkit-fill-available; }
-body { display: block; overflow-x: hidden; min-height: 100vh; min-height: -webkit-fill-available; }
-.sidebar {
-width: 100% !important;
-height: calc(62px + env(safe-area-inset-bottom));
-padding-bottom: env(safe-area-inset-bottom);
-min-height: unset;
-position: fixed !important;
-top: auto !important;
-bottom: 0 !important;
-left: 0 !important;
-right: 0 !important;
-border-right: none;
-border-top: 1px solid rgba(255,255,255,0.1);
-flex-direction: row;
-z-index: 9000;
-background: #1a2550;
-will-change: transform;
--webkit-backface-visibility: hidden;
-backface-visibility: hidden;
-transform: translate3d(0,0,0);
--webkit-transform: translate3d(0,0,0);
-}
-.sidebar-logo, .nav-section, .sidebar-footer { display: none; }
-.sidebar-nav { flex-direction: row; padding: 0; gap: 0; width: 100%; justify-content: space-around; align-items: center; }
-.nav-item { flex-direction: column; gap: 3px; padding: 6px 4px; font-size: 10px; flex: 1; border-radius: 0; justify-content: center; align-items: center; color: rgba(255,255,255,0.5); }
-.nav-item.active { background: rgba(255,255,255,0.1); color: #fff; }
-.nav-item.active::before { display: none; }
-.nav-item span { display: block; font-size: 10px; font-weight: 600; }
-.nav-item svg { width: 20px; height: 20px; }
-.nav-badge { position: absolute; top: 4px; right: 10px; font-size: 9px; padding: 1px 4px; }
-.main { margin-left: 0; padding-bottom: calc(72px + env(safe-area-inset-bottom)); min-height: 100vh; }
-#toggle-btn { display: none !important; }
-.topbar { padding: 0 1rem; }
-.content { padding: 1rem; }
-.chart-grid, .cc, .fg { grid-template-columns: 1fr; }
-.metrics { grid-template-columns: 1fr 1fr; }
-.metric::after { height: 2px; }
-.tbl-wrap { -webkit-overflow-scrolling: touch; }
-table { font-size: 12px; }
-th, td { padding: 8px 9px; }
-.confirm-btn { font-size: 11px; padding: 5px 9px; }
-.ib { width: 28px; height: 28px; }
-.page-title { font-size: 17px; margin-bottom: 1rem; }
-.ff { grid-column: 1; }
-.mv { font-size: 20px; }
+  body { display: block; overflow-x: hidden; }
+  .sidebar {
+    width: 100% !important;
+    height: 62px;
+    min-height: unset;
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    border-right: none;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    flex-direction: row;
+    z-index: 9000;
+    background: #1a2550;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+  .sidebar-logo, .nav-section, .sidebar-footer { display: none; }
+  .sidebar-nav { flex-direction: row; padding: 0; gap: 0; width: 100%; justify-content: space-around; align-items: center; }
+  .nav-item { flex-direction: column; gap: 3px; padding: 6px 4px; font-size: 10px; flex: 1; border-radius: 0; justify-content: center; align-items: center; color: rgba(255,255,255,0.5); }
+  .nav-item.active { background: rgba(255,255,255,0.1); color: #fff; }
+  .nav-item.active::before { display: none; }
+  .nav-item span { display: block; font-size: 10px; font-weight: 600; }
+  .nav-item svg { width: 20px; height: 20px; }
+  .nav-badge { position: absolute; top: 4px; right: 10px; font-size: 9px; padding: 1px 4px; }
+  .main { margin-left: 0; padding-bottom: 72px; min-height: 100vh; }
+  .topbar { padding: 0 1rem; }
+  .content { padding: 1rem; }
+  .chart-grid, .cc, .fg { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .metric::after { height: 2px; }
+  .tbl-wrap { -webkit-overflow-scrolling: touch; }
+  table { font-size: 12px; }
+  th, td { padding: 8px 9px; }
+  .confirm-btn { font-size: 11px; padding: 5px 9px; }
+  .ib { width: 28px; height: 28px; }
+  .page-title { font-size: 17px; margin-bottom: 1rem; }
+  .ff { grid-column: 1; }
+  .mv { font-size: 20px; }
 }.login-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
-.login-field label { font-size: 13px; color: var(–t2); font-weight: 500; }
-.login-field input { font-size: 15px; padding: 10px 14px; border-radius: var(–rm); border: 0.5px solid var(–bs); background: var(–bg1); color: var(–t1); }
+.login-field label { font-size: 13px; color: var(--t2); font-weight: 500; }
+.login-field input { font-size: 15px; padding: 10px 14px; border-radius: var(--rm); border: 0.5px solid var(--bs); background: var(--bg1); color: var(--t1); }
 .login-field input:focus { outline: none; border-color: #3266ad; }
-.login-btn { width: 100%; padding: 11px; background: var(–t1); color: var(–bg1); border: none; border-radius: var(–rm); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 0.5rem; }
+.login-btn { width: 100%; padding: 11px; background: var(--t1); color: var(--bg1); border: none; border-radius: var(--rm); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 0.5rem; }
 .login-btn:hover { opacity: .85; }
-.login-err { background: #FCEBEB; color: #A32D2D; border-radius: var(–rm); padding: 9px 14px; font-size: 13px; margin-bottom: 1rem; display: none; text-align: center; }
+.login-err { background: #FCEBEB; color: #A32D2D; border-radius: var(--rm); padding: 9px 14px; font-size: 13px; margin-bottom: 1rem; display: none; text-align: center; }
 .app-hidden { display: none !important; }
 </style>
-
 </head>
 <body>
 
@@ -349,7 +340,7 @@ th, td { padding: 8px 9px; }
 
 <div class="main">
   <div class="topbar">
-    <button onclick="toggleSidebar()" id="toggle-btn" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:var(--rm);color:var(--t2);align-items:center;margin-right:12px;flex-shrink:0;font-size:18px;line-height:1;">☰</button>
+    <button onclick="toggleSidebar()" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:var(--rm);color:var(--t2);display:flex;align-items:center;margin-right:12px;flex-shrink:0;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <h1 id="topbar-title">Dashboard</h1>
@@ -363,229 +354,225 @@ th, td { padding: 8px 9px; }
 
   <div class="content">
 
-```
-<div id="sec-dashboard" class="sec active">
-  <div id="metrics" class="metrics"></div>
-  <div id="dash-meta"></div>
-  <div class="chart-grid">
-    <div class="card"><div class="ct">Monto por tipo</div><div class="cw"><canvas id="d-chart-tipo"></canvas></div><div class="leg" id="d-leg-tipo"></div></div>
-    <div class="card"><div class="ct">Monto por país</div><div class="cw"><canvas id="d-chart-pais"></canvas></div><div class="leg" id="d-leg-pais"></div></div>
-  </div>
-  <div class="chart-grid">
-    <div class="card"><div class="ct">Pendientes próximas</div><div id="dash-pending-list" class="pending-list" style="margin-top:4px;"></div><p id="dash-pending-empty" class="empty" style="display:none;padding:1rem 0;font-size:12px;">Sin pendientes</p></div>
-  </div>
-</div>
-
-<div id="sec-donaciones" class="sec">
-  <div class="page-title">Donaciones confirmadas</div>
-  <div class="filters">
-    <input type="text" id="search-don" placeholder="Buscar donante, institución..." oninput="renderDonaciones()">
-    <select id="ft-don" onchange="renderDonaciones()"></select>
-    <select id="fp-don" onchange="renderDonaciones()"></select>
-  </div>
-  <div class="card" style="padding:0;">
-    <div class="tbl-wrap">
-      <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="width:68px;"></th></tr></thead><tbody id="don-body"></tbody></table>
-    </div>
-    <p id="don-empty" class="empty" style="display:none;">No hay donaciones.</p>
-  </div>
-</div>
-
-<div id="sec-pendientes" class="sec">
-  <div class="page-title">Donaciones pendientes</div>
-  <div class="filters">
-    <input type="text" id="search-pend" placeholder="Buscar..." oninput="renderPendientes()">
-    <select id="ft-pend" onchange="renderPendientes()"></select>
-    <select id="fp-pend" onchange="renderPendientes()"></select>
-  </div>
-  <div class="card" style="padding:0;">
-    <div class="tbl-wrap">
-      <table><thead><tr><th>Fecha esperada</th><th>Tipo</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="width:120px;"></th></tr></thead><tbody id="pend-body"></tbody></table>
-    </div>
-    <p id="pend-empty" class="empty" style="display:none;">No hay pendientes.</p>
-  </div>
-</div>
-
-
-
-<div id="sec-nueva-don" class="sec">
-  <div class="page-title">Nueva donación</div>
-  <div class="card">
-    <div id="ok-don" class="ok-msg"></div>
-    <div id="err-don" class="err-msg"></div>
-    <div class="fg">
-      <div class="fgi"><label>Fecha</label><input type="date" id="nd-fecha"></div>
-      <div class="fgi"><label>Tipo</label><select id="nd-tipo"></select></div>
-      <div class="fgi"><label>Institución</label><input type="text" id="nd-inst" placeholder="Nombre de institución"></div>
-      <div class="fgi"><label>Recibido por</label><input type="text" id="nd-recv" placeholder="Nombre"></div>
-      <div class="fgi"><label>País</label><select id="nd-pais"></select></div>
-      <div class="fgi"><label>Monto (USD)</label><input type="number" id="nd-monto" placeholder="0" min="0"></div>
-      <div class="fgi ff"><label>Notas</label><textarea id="nd-notas" placeholder="Comentarios adicionales..."></textarea></div>
-    </div>
-    <div style="margin-top:1.25rem;"><button class="btn" id="btn-don" onclick="addDonacion()">Registrar donación</button></div>
-  </div>
-</div>
-
-<div id="sec-nueva-pend" class="sec">
-  <div class="page-title">Nuevo pendiente</div>
-  <div class="card">
-    <div id="ok-pend" class="ok-msg"></div>
-    <div id="err-pend" class="err-msg"></div>
-    <div class="fg">
-      <div class="fgi"><label>Fecha de registro</label><input type="date" id="np-fecha"></div>
-      <div class="fgi"><label>Fecha esperada</label><input type="date" id="np-due"></div>
-      <div class="fgi"><label>Tipo</label><select id="np-tipo"></select></div>
-      <div class="fgi"><label>País</label><select id="np-pais"></select></div>
-      <div class="fgi"><label>Institución</label><input type="text" id="np-inst" placeholder="Nombre de institución"></div>
-      <div class="fgi"><label>Recibido por / Contacto</label><input type="text" id="np-recv" placeholder="Nombre"></div>
-      <div class="fgi"><label>Monto esperado (USD)</label><input type="number" id="np-monto" placeholder="0" min="0"></div>
-      <div class="fgi ff"><label>Notas / Recordatorio</label><textarea id="np-notas" placeholder="Detalles del compromiso..."></textarea></div>
-    </div>
-    <div style="margin-top:1.25rem;"><button class="btn" id="btn-pend" onclick="addPendiente()">Registrar pendiente</button></div>
-  </div>
-</div>
-
-<!-- IMPORTAR EXCEL -->
-
-
-<div id="sec-config" class="sec">
-  <div class="page-title">Configuración</div>
-
-  <!-- Inner tabs -->
-  <div style="display:flex;gap:4px;border-bottom:1px solid var(--bt);margin-bottom:1.5rem;">
-    <button class="cfg-tab active" onclick="switchCfgTab('general')" style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--t2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;">General</button>
-    <button class="cfg-tab" onclick="switchCfgTab('importar')" style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--t2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;">Importar Excel</button>
-    <button class="cfg-tab" onclick="switchCfgTab('usuarios')" style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--t2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;">Usuarios</button>
-  </div>
-
-  <!-- TAB: General -->
-  <div id="cfg-general" class="cfg-sec">
-  <div class="card" style="margin-bottom:1.25rem;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;">
-      <div style="font-size:14px;font-weight:600;">Metas anuales</div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <input type="number" id="meta-anio-input" placeholder="Año" min="2000" max="2099" style="width:80px;font-size:13px;padding:7px 10px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t1);">
-        <input type="number" id="meta-monto-input" placeholder="Meta USD" min="0" style="width:140px;font-size:13px;padding:7px 10px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t1);">
-        <button class="ba" onclick="addMeta()">+ Agregar</button>
+    <div id="sec-dashboard" class="sec active">
+      <div id="metrics" class="metrics"></div>
+      <div id="dash-meta"></div>
+      <div class="chart-grid">
+        <div class="card"><div class="ct">Monto por tipo</div><div class="cw"><canvas id="d-chart-tipo"></canvas></div><div class="leg" id="d-leg-tipo"></div></div>
+        <div class="card"><div class="ct">Monto por país</div><div class="cw"><canvas id="d-chart-pais"></canvas></div><div class="leg" id="d-leg-pais"></div></div>
+      </div>
+      <div class="chart-grid">
+        <div class="card"><div class="ct">Pendientes próximas</div><div id="dash-pending-list" class="pending-list" style="margin-top:4px;"></div><p id="dash-pending-empty" class="empty" style="display:none;padding:1rem 0;font-size:12px;">Sin pendientes</p></div>
       </div>
     </div>
-    <div id="metas-ok" class="ok-msg"></div>
-    <div id="metas-err" class="err-msg"></div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th>Año</th><th style="text-align:right;">Meta (USD)</th><th>Estado</th><th style="width:110px;"></th></tr></thead>
-        <tbody id="metas-body"></tbody>
-      </table>
-      <p id="metas-empty" class="empty" style="display:none;padding:1.5rem 0;font-size:13px;">No hay metas configuradas.</p>
-    </div>
-  </div>
-  <div class="cc">
-    <div class="card">
-      <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Tipos de donación</div>
-      <div id="list-tipos"></div>
-      <div class="ar"><input type="text" id="new-tipo" placeholder="Nuevo tipo..." onkeydown="if(event.key==='Enter')addTipo()"><button class="ba" onclick="addTipo()">+ Agregar</button></div>
-    </div>
-    <div class="card">
-      <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Países</div>
-      <div id="list-paises"></div>
-      <div class="ar"><input type="text" id="new-pais" placeholder="Nuevo país..." onkeydown="if(event.key==='Enter')addPais()"><button class="ba" onclick="addPais()">+ Agregar</button></div>
-    </div>
-  </div>
-  </div><!-- /cfg-general -->
 
-  <!-- TAB: Importar Excel -->
-  <div id="cfg-importar" class="cfg-sec" style="display:none;">
-
-  <!-- Instrucciones -->
-  <div class="card" style="margin-bottom:1.25rem;">
-    <div style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Formato esperado</div>
-    <p style="font-size:13px;color:var(--t2);margin-bottom:0.75rem;">Puedes pegar <strong>con o sin encabezados</strong>. Si no hay encabezados, se asume este orden:</p>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:0.75rem;">
-      <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">1. FECHA</span>
-      <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">2. TIPO</span>
-      <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">3. INSTITUCION</span>
-      <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">4. RECIBIDO POR</span>
-      <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">5. PAIS</span>
-      <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">6. MONTO</span>
-      <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">7. NOTAS</span>
-    </div>
-    <p style="font-size:12px;color:var(--t3);">Si incluyes encabezados, el orden no importa — se detectan automáticamente.</p>
-  </div>
-
-  <!-- Upload area -->
-  <div class="card" style="margin-bottom:1.25rem;">
-    <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Opción 1 — Pegar desde Excel</div>
-    <p style="font-size:13px;color:var(--t2);margin-bottom:0.75rem;">Selecciona las celdas en Excel (incluyendo la fila de encabezados), copia con <strong>Ctrl+C</strong> y pega aquí:</p>
-    <textarea id="paste-area" placeholder="Pega aquí los datos copiados de Excel (Ctrl+V)..." style="width:100%;height:140px;font-size:13px;padding:10px 12px;border-radius:var(--rm);border:0.5px solid var(--bs);background:var(--bg1);color:var(--t1);resize:vertical;font-family:var(--font-mono,monospace);" onpaste="setTimeout(()=>processPaste(),50)"></textarea>
-    <div style="margin-top:8px;"><button class="ba" onclick="processPaste()">Procesar datos pegados</button></div>
-  </div>
-
-  <!-- File upload area -->
-  <div class="card" style="margin-bottom:1.25rem;">
-    <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Opción 2 — Subir archivo Excel</div>
-    <div id="drop-zone" style="border:2px dashed var(--bs);border-radius:var(--rl);padding:2rem;text-align:center;cursor:pointer;transition:border-color .15s;" onclick="document.getElementById('excel-input').click()" ondragover="event.preventDefault();this.style.borderColor='#3266ad'" ondragleave="this.style.borderColor=''" ondrop="handleDrop(event)">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 0.5rem;display:block;"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
-      <p style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px;">Arrastra tu archivo Excel aquí</p>
-      <p style="font-size:12px;color:var(--t2);">o haz clic para seleccionar · .xlsx, .xls</p>
-    </div>
-    <input type="file" id="excel-input" accept=".xlsx,.xls" style="display:none;" onchange="handleFile(this.files[0])">
-  </div>
-
-  <!-- Preview -->
-  <div id="import-preview" style="display:none;">
-    <div class="card" style="margin-bottom:1.25rem;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;">
-        <div>
-          <div style="font-size:14px;font-weight:500;color:var(--t1);" id="import-title">Vista previa</div>
-          <div style="font-size:12px;color:var(--t2);margin-top:2px;" id="import-subtitle"></div>
+    <div id="sec-donaciones" class="sec">
+      <div class="page-title">Donaciones confirmadas</div>
+      <div class="filters">
+        <input type="text" id="search-don" placeholder="Buscar donante, institución..." oninput="renderDonaciones()">
+        <select id="ft-don" onchange="renderDonaciones()"></select>
+        <select id="fp-don" onchange="renderDonaciones()"></select>
+      </div>
+      <div class="card" style="padding:0;">
+        <div class="tbl-wrap">
+          <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="width:68px;"></th></tr></thead><tbody id="don-body"></tbody></table>
         </div>
-        <div style="display:flex;gap:8px;">
-          <button class="ba" onclick="clearImport()">Cancelar</button>
-          <button class="btn" id="btn-import" onclick="confirmImport()">Importar todo</button>
+        <p id="don-empty" class="empty" style="display:none;">No hay donaciones.</p>
+      </div>
+    </div>
+
+    <div id="sec-pendientes" class="sec">
+      <div class="page-title">Donaciones pendientes</div>
+      <div class="filters">
+        <input type="text" id="search-pend" placeholder="Buscar..." oninput="renderPendientes()">
+        <select id="ft-pend" onchange="renderPendientes()"></select>
+        <select id="fp-pend" onchange="renderPendientes()"></select>
+      </div>
+      <div class="card" style="padding:0;">
+        <div class="tbl-wrap">
+          <table><thead><tr><th>Fecha esperada</th><th>Tipo</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="width:120px;"></th></tr></thead><tbody id="pend-body"></tbody></table>
+        </div>
+        <p id="pend-empty" class="empty" style="display:none;">No hay pendientes.</p>
+      </div>
+    </div>
+
+    
+
+    <div id="sec-nueva-don" class="sec">
+      <div class="page-title">Nueva donación</div>
+      <div class="card">
+        <div id="ok-don" class="ok-msg"></div>
+        <div id="err-don" class="err-msg"></div>
+        <div class="fg">
+          <div class="fgi"><label>Fecha</label><input type="date" id="nd-fecha"></div>
+          <div class="fgi"><label>Tipo</label><select id="nd-tipo"></select></div>
+          <div class="fgi"><label>Institución</label><input type="text" id="nd-inst" placeholder="Nombre de institución"></div>
+          <div class="fgi"><label>Recibido por</label><input type="text" id="nd-recv" placeholder="Nombre"></div>
+          <div class="fgi"><label>País</label><select id="nd-pais"></select></div>
+          <div class="fgi"><label>Monto (USD)</label><input type="number" id="nd-monto" placeholder="0" min="0"></div>
+          <div class="fgi ff"><label>Notas</label><textarea id="nd-notas" placeholder="Comentarios adicionales..."></textarea></div>
+        </div>
+        <div style="margin-top:1.25rem;"><button class="btn" id="btn-don" onclick="addDonacion()">Registrar donación</button></div>
+      </div>
+    </div>
+
+    <div id="sec-nueva-pend" class="sec">
+      <div class="page-title">Nuevo pendiente</div>
+      <div class="card">
+        <div id="ok-pend" class="ok-msg"></div>
+        <div id="err-pend" class="err-msg"></div>
+        <div class="fg">
+          <div class="fgi"><label>Fecha de registro</label><input type="date" id="np-fecha"></div>
+          <div class="fgi"><label>Fecha esperada</label><input type="date" id="np-due"></div>
+          <div class="fgi"><label>Tipo</label><select id="np-tipo"></select></div>
+          <div class="fgi"><label>País</label><select id="np-pais"></select></div>
+          <div class="fgi"><label>Institución</label><input type="text" id="np-inst" placeholder="Nombre de institución"></div>
+          <div class="fgi"><label>Recibido por / Contacto</label><input type="text" id="np-recv" placeholder="Nombre"></div>
+          <div class="fgi"><label>Monto esperado (USD)</label><input type="number" id="np-monto" placeholder="0" min="0"></div>
+          <div class="fgi ff"><label>Notas / Recordatorio</label><textarea id="np-notas" placeholder="Detalles del compromiso..."></textarea></div>
+        </div>
+        <div style="margin-top:1.25rem;"><button class="btn" id="btn-pend" onclick="addPendiente()">Registrar pendiente</button></div>
+      </div>
+    </div>
+
+    <!-- IMPORTAR EXCEL -->
+    
+
+    <div id="sec-config" class="sec">
+      <div class="page-title">Configuración</div>
+
+      <!-- Inner tabs -->
+      <div style="display:flex;gap:4px;border-bottom:1px solid var(--bt);margin-bottom:1.5rem;">
+        <button class="cfg-tab active" onclick="switchCfgTab('general')" style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--t2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;">General</button>
+        <button class="cfg-tab" onclick="switchCfgTab('importar')" style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--t2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;">Importar Excel</button>
+        <button class="cfg-tab" onclick="switchCfgTab('usuarios')" style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--t2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;">Usuarios</button>
+      </div>
+
+      <!-- TAB: General -->
+      <div id="cfg-general" class="cfg-sec">
+      <div class="card" style="margin-bottom:1.25rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;">
+          <div style="font-size:14px;font-weight:600;">Metas anuales</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="number" id="meta-anio-input" placeholder="Año" min="2000" max="2099" style="width:80px;font-size:13px;padding:7px 10px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t1);">
+            <input type="number" id="meta-monto-input" placeholder="Meta USD" min="0" style="width:140px;font-size:13px;padding:7px 10px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t1);">
+            <button class="ba" onclick="addMeta()">+ Agregar</button>
+          </div>
+        </div>
+        <div id="metas-ok" class="ok-msg"></div>
+        <div id="metas-err" class="err-msg"></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Año</th><th style="text-align:right;">Meta (USD)</th><th>Estado</th><th style="width:110px;"></th></tr></thead>
+            <tbody id="metas-body"></tbody>
+          </table>
+          <p id="metas-empty" class="empty" style="display:none;padding:1.5rem 0;font-size:13px;">No hay metas configuradas.</p>
         </div>
       </div>
-      <div id="import-ok" class="ok-msg"></div>
-      <div id="import-err" class="err-msg"></div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>#</th><th>Fecha</th><th>Tipo</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th>Estado</th></tr></thead>
-          <tbody id="import-body"></tbody>
-        </table>
+      <div class="cc">
+        <div class="card">
+          <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Tipos de donación</div>
+          <div id="list-tipos"></div>
+          <div class="ar"><input type="text" id="new-tipo" placeholder="Nuevo tipo..." onkeydown="if(event.key==='Enter')addTipo()"><button class="ba" onclick="addTipo()">+ Agregar</button></div>
+        </div>
+        <div class="card">
+          <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Países</div>
+          <div id="list-paises"></div>
+          <div class="ar"><input type="text" id="new-pais" placeholder="Nuevo país..." onkeydown="if(event.key==='Enter')addPais()"><button class="ba" onclick="addPais()">+ Agregar</button></div>
+        </div>
       </div>
-    </div>
-  </div>
-    </div>
+      </div><!-- /cfg-general -->
 
-  <!-- TAB: Usuarios -->
-  <div id="cfg-usuarios" class="cfg-sec" style="display:none;">
-    <div class="card" style="margin-bottom:1.25rem;">
-      <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Usuarios activos</div>
-      <div id="user-list"></div>
-    </div>
-    <div class="card">
-      <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Agregar usuario</div>
-      <div id="user-ok" class="ok-msg"></div>
-      <div id="user-err" class="err-msg"></div>
-      <div class="fg">
-        <div class="fgi"><label>Usuario</label><input type="text" id="nu-user" placeholder="nombre de usuario" autocomplete="off"></div>
-        <div class="fgi"><label>Contraseña</label><input type="password" id="nu-pass" placeholder="••••••••" autocomplete="new-password"></div>
+      <!-- TAB: Importar Excel -->
+      <div id="cfg-importar" class="cfg-sec" style="display:none;">
+
+      <!-- Instrucciones -->
+      <div class="card" style="margin-bottom:1.25rem;">
+        <div style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Formato esperado</div>
+        <p style="font-size:13px;color:var(--t2);margin-bottom:0.75rem;">Puedes pegar <strong>con o sin encabezados</strong>. Si no hay encabezados, se asume este orden:</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:0.75rem;">
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">1. FECHA</span>
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">2. TIPO</span>
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">3. INSTITUCION</span>
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">4. RECIBIDO POR</span>
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">5. PAIS</span>
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">6. MONTO</span>
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">7. NOTAS</span>
+        </div>
+        <p style="font-size:12px;color:var(--t3);">Si incluyes encabezados, el orden no importa — se detectan automáticamente.</p>
       </div>
-      <div style="margin-top:1.25rem;"><button class="btn" onclick="addUser()">Agregar usuario</button></div>
-    </div>
-  </div>
 
-</div>
-```
+      <!-- Upload area -->
+      <div class="card" style="margin-bottom:1.25rem;">
+        <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Opción 1 — Pegar desde Excel</div>
+        <p style="font-size:13px;color:var(--t2);margin-bottom:0.75rem;">Selecciona las celdas en Excel (incluyendo la fila de encabezados), copia con <strong>Ctrl+C</strong> y pega aquí:</p>
+        <textarea id="paste-area" placeholder="Pega aquí los datos copiados de Excel (Ctrl+V)..." style="width:100%;height:140px;font-size:13px;padding:10px 12px;border-radius:var(--rm);border:0.5px solid var(--bs);background:var(--bg1);color:var(--t1);resize:vertical;font-family:var(--font-mono,monospace);" onpaste="setTimeout(()=>processPaste(),50)"></textarea>
+        <div style="margin-top:8px;"><button class="ba" onclick="processPaste()">Procesar datos pegados</button></div>
+      </div>
+
+      <!-- File upload area -->
+      <div class="card" style="margin-bottom:1.25rem;">
+        <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Opción 2 — Subir archivo Excel</div>
+        <div id="drop-zone" style="border:2px dashed var(--bs);border-radius:var(--rl);padding:2rem;text-align:center;cursor:pointer;transition:border-color .15s;" onclick="document.getElementById('excel-input').click()" ondragover="event.preventDefault();this.style.borderColor='#3266ad'" ondragleave="this.style.borderColor=''" ondrop="handleDrop(event)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 0.5rem;display:block;"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
+          <p style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px;">Arrastra tu archivo Excel aquí</p>
+          <p style="font-size:12px;color:var(--t2);">o haz clic para seleccionar · .xlsx, .xls</p>
+        </div>
+        <input type="file" id="excel-input" accept=".xlsx,.xls" style="display:none;" onchange="handleFile(this.files[0])">
+      </div>
+
+      <!-- Preview -->
+      <div id="import-preview" style="display:none;">
+        <div class="card" style="margin-bottom:1.25rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div style="font-size:14px;font-weight:500;color:var(--t1);" id="import-title">Vista previa</div>
+              <div style="font-size:12px;color:var(--t2);margin-top:2px;" id="import-subtitle"></div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="ba" onclick="clearImport()">Cancelar</button>
+              <button class="btn" id="btn-import" onclick="confirmImport()">Importar todo</button>
+            </div>
+          </div>
+          <div id="import-ok" class="ok-msg"></div>
+          <div id="import-err" class="err-msg"></div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Fecha</th><th>Tipo</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th>Estado</th></tr></thead>
+              <tbody id="import-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+        </div>
+
+      <!-- TAB: Usuarios -->
+      <div id="cfg-usuarios" class="cfg-sec" style="display:none;">
+        <div class="card" style="margin-bottom:1.25rem;">
+          <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Usuarios activos</div>
+          <div id="user-list"></div>
+        </div>
+        <div class="card">
+          <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Agregar usuario</div>
+          <div id="user-ok" class="ok-msg"></div>
+          <div id="user-err" class="err-msg"></div>
+          <div class="fg">
+            <div class="fgi"><label>Usuario</label><input type="text" id="nu-user" placeholder="nombre de usuario" autocomplete="off"></div>
+            <div class="fgi"><label>Contraseña</label><input type="password" id="nu-pass" placeholder="••••••••" autocomplete="new-password"></div>
+          </div>
+          <div style="margin-top:1.25rem;"><button class="btn" onclick="addUser()">Agregar usuario</button></div>
+        </div>
+      </div>
+
+    </div>
 
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
 <script>
-// -- Supabase config --
+// ── Supabase config ──
 const SB_URL = 'https://luzyensffwvfslurmqpw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1enllbnNmZnd2ZnNsdXJtcXB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTI3ODMsImV4cCI6MjA4OTg2ODc4M30.5DokAdH86kK7U9uNQWT2OCbaBOfpyYK7C0i0QJrM9i4';
 const H = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
@@ -600,7 +587,7 @@ async function sb(table, method='GET', body=null, query='') {
   return text ? JSON.parse(text) : [];
 }
 
-// -- Icons --
+// ── Icons ──
 const SVG = {
   edit:    c=>`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
   save:    c=>`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
@@ -611,12 +598,12 @@ const SVG = {
 const IC = {edit:'#888780',save:'#0F6E56',del:'#A32D2D',cancel:'#888780',confirm:'#0F6E56'};
 const ib = (cls,fn,ico) => `<button class="ib ${cls}" onclick="${fn}">${SVG[ico](IC[ico])}</button>`;
 
-// -- State --
+// ── State ──
 let donaciones=[], pendientes=[], tipos=[], paises=[], metas=[], metaActiva=null;
 let editDon=null, editPend=null, editTipo=null, editPais=null;
 const COLORS = ['#3266ad','#7F77DD','#1D9E75','#D85A30','#D4537E','#639922','#BA7517','#E24B4A'];
 
-// -- Helpers --
+// ── Helpers ──
 function today() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function fmt(n) { return '$'+Number(n||0).toLocaleString('en-US'); }
 function fmtD(d) { if(!d)return'—'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0].slice(2)}`; }
@@ -646,7 +633,7 @@ function refreshSelects() {
   ['fp-don','fp-pend'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const sv=el.value;el.innerHTML='<option value="">Todos los países</option>'+paises.map(p=>`<option${sv===p?' selected':''}>${p}</option>`).join('');});
 }
 
-// -- Load all data from Supabase --
+// ── Load all data from Supabase ──
 async function loadAll() {
   document.getElementById('don-body').innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spinner"></div> Cargando datos...</div></td></tr>';
   try {
@@ -687,7 +674,7 @@ async function saveConfig(key, value) {
   }
 }
 
-// -- Metrics --
+// ── Metrics ──
 function renderMetrics() {
   const tD=donaciones.reduce((a,d)=>a+(d.monto||0),0);
   const tP=pendientes.reduce((a,p)=>a+(p.monto||0),0);
@@ -739,7 +726,7 @@ function renderDashPending() {
   }).join('');
 }
 
-// -- Donaciones table --
+// ── Donaciones table ──
 function renderDonaciones() {
   const q=(document.getElementById('search-don').value||'').toLowerCase();
   const ft=document.getElementById('ft-don').value;
@@ -797,7 +784,7 @@ async function delDon(id){
   } catch(e){ alert('Error: '+e.message); }
 }
 
-// -- Pendientes table --
+// ── Pendientes table ──
 function renderPendientes() {
   const q=(document.getElementById('search-pend').value||'').toLowerCase();
   const ft=document.getElementById('ft-pend').value;
@@ -869,7 +856,7 @@ async function confirmPend(id) {
   } catch(e){ alert('Error: '+e.message); }
 }
 
-// -- Config --
+// ── Config ──
 function renderConfigTipos(){
   document.getElementById('list-tipos').innerHTML=tipos.map((t,i)=>{
     if(editTipo===i)return`<div class="ci"><input id="eti" value="${t}" onkeydown="if(event.key==='Enter')saveTipo(${i})">${ib('save',`saveTipo(${i})`,'save')}${ib('cancel','cancelTipo()','cancel')}</div>`;
@@ -894,7 +881,7 @@ async function savePais(i){const v=document.getElementById('epi').value.trim();i
 async function delPais(i){if(!confirm(`¿Eliminar "${paises[i]}"?`))return;paises.splice(i,1);await saveConfig('paises',paises);renderConfigPaises();refreshSelects();}
 async function addPais(){const inp=document.getElementById('new-pais'),v=inp.value.trim();if(!v||paises.includes(v))return;paises.push(v);inp.value='';await saveConfig('paises',paises);renderConfigPaises();refreshSelects();}
 
-// -- Metas --
+// ── Metas ──
 async function loadMetas() {
   try {
     const res = await sb('metas','GET',null,'?order=anio.desc');
@@ -958,7 +945,7 @@ async function delMeta(id) {
   } catch(e){ showErr('metas-err','Error: '+e.message); }
 }
 
-// -- Add forms --
+// ── Add forms ──
 async function addDonacion(){
   const fecha=document.getElementById('nd-fecha').value;
   const monto=parseFloat(document.getElementById('nd-monto').value)||0;
@@ -996,7 +983,7 @@ async function addPendiente(){
   btn.disabled=false; btn.textContent='Registrar pendiente';
 }
 
-// -- Charts --
+// ── Charts ──
 let charts={};
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function renderCharts(prefix){
@@ -1013,8 +1000,8 @@ function renderCharts(prefix){
   document.getElementById(prefix+'leg-pais').innerHTML=pL.map((l,i)=>`<div class="li"><div class="ld" style="background:${COLORS.slice().reverse()[i%COLORS.length]}"></div>${l}: ${fmt(pD[i])}</div>`).join('');
 }
 
-// -- Navigation --
-// -- Config inner tabs --
+// ── Navigation ──
+// ── Config inner tabs ──
 function switchCfgTab(tab) {
   document.querySelectorAll('.cfg-tab').forEach(t => {
     const isActive = t.getAttribute('onclick').includes(`'${tab}'`);
@@ -1098,7 +1085,7 @@ async function addUser() {
 
 const PAGE_TITLES={dashboard:'Dashboard',donaciones:'Donaciones confirmadas',pendientes:'Donaciones pendientes','nueva-don':'Nueva donación','nueva-pend':'Nuevo pendiente',config:'Configuración'};
 
-// -- Excel Import --
+// ── Excel Import ──
 let importRows = [];
 
 function normalizeKey(k) {
@@ -1330,7 +1317,7 @@ function toggleSidebar(){
   document.querySelector('.main').classList.toggle('collapsed');
 }
 
-// -- Login --
+// ── Login ──
 let USERS = [];
 const SESSION_KEY = 'don_auth';
 let currentUser = null;
@@ -1385,11 +1372,10 @@ async function checkAuth() {
   document.getElementById('login-user').focus();
 }
 
-// -- Init --
+// ── Init ──
 document.getElementById('nd-fecha').value=today();
 document.getElementById('np-fecha').value=today();
 checkAuth();
 </script>
-
 </body>
 </html>
