@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tracker de Donaciones</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a2550'/><circle cx='50' cy='50' r='34' fill='none' stroke='white' stroke-width='7'/><path d='M57 38a8 8 0 0 0-7-4h-8a8 8 0 0 0 0 16h8a8 8 0 0 1 0 16h-8a8 8 0 0 1-7-4' fill='none' stroke='white' stroke-width='7' stroke-linecap='round'/><line x1='50' y1='28' x2='50' y2='34' stroke='white' stroke-width='7' stroke-linecap='round'/><line x1='50' y1='66' x2='50' y2='72' stroke='white' stroke-width='7' stroke-linecap='round'/></svg>">
 <style>
@@ -220,7 +220,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
   body { display: block; overflow-x: hidden; }
   .sidebar {
     width: 100% !important;
-    height: 62px;
+    height: calc(62px + env(safe-area-inset-bottom)) !important;
     min-height: unset;
     position: fixed !important;
     top: auto !important;
@@ -230,10 +230,12 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
     border-right: none;
     border-top: 1px solid rgba(255,255,255,0.1);
     flex-direction: row;
-    z-index: 9000;
+    z-index: 9999;
     background: #1a2550;
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
+    will-change: transform;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .sidebar-logo, .nav-section, .sidebar-footer { display: none; }
   .sidebar-nav { flex-direction: row; padding: 0; gap: 0; width: 100%; justify-content: space-around; align-items: center; }
@@ -243,7 +245,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
   .nav-item span { display: block; font-size: 10px; font-weight: 600; }
   .nav-item svg { width: 20px; height: 20px; }
   .nav-badge { position: absolute; top: 4px; right: 10px; font-size: 9px; padding: 1px 4px; }
-  .main { margin-left: 0; padding-bottom: 72px; min-height: 100vh; }
+  .main { margin-left: 0; padding-bottom: calc(72px + env(safe-area-inset-bottom)); min-height: 100vh; }
   .topbar { padding: 0 1rem; }
   .content { padding: 1rem; }
   .chart-grid, .cc, .fg { grid-template-columns: 1fr; }
