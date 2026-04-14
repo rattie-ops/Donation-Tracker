@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
@@ -135,6 +135,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 .b-tipo-personal   { background: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
 .b-tipo-construccion { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
 .b-tipo-instirucion { background: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; }
+.b-tipo-fundacion  { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 .b-tipo-default    { background: var(--bg2); color: var(--t2); border: 1px solid var(--bt); }
 .b-over { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 .b-near { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
@@ -221,6 +222,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
   .content { padding: 1.25rem; }
 }
 @media(max-width:768px){
+  input, select, textarea { font-size: 16px !important; }
   body { display: block; overflow-x: hidden; }
   .sidebar {
     width: 100% !important;
@@ -685,10 +687,38 @@ function metaBadge(meta_id) {
   return `<span class="badge" style="background:${active?'#dbeafe':'var(--bg2)'};color:${active?'#1d4ed8':'var(--t2)'};border:1px solid ${active?'#bfdbfe':'var(--bt)'};">${m.anio}</span>`;
 }
 
+// Auto-color palette for dynamic categories
+const BADGE_PALETTE = [
+  { bg:'#dbeafe', color:'#1d4ed8', border:'#bfdbfe' },
+  { bg:'#ede9fe', color:'#6d28d9', border:'#ddd6fe' },
+  { bg:'#dcfce7', color:'#15803d', border:'#bbf7d0' },
+  { bg:'#fef9c3', color:'#a16207', border:'#fef08a' },
+  { bg:'#ffedd5', color:'#c2410c', border:'#fed7aa' },
+  { bg:'#fce7f3', color:'#be185d', border:'#fbcfe8' },
+  { bg:'#f0fdf4', color:'#166534', border:'#bbf7d0' },
+  { bg:'#fff7ed', color:'#9a3412', border:'#fed7aa' },
+  { bg:'#f0f9ff', color:'#075985', border:'#bae6fd' },
+  { bg:'#fdf4ff', color:'#7e22ce', border:'#e9d5ff' },
+  { bg:'#fef2f2', color:'#991b1b', border:'#fecaca' },
+  { bg:'#f0fdfa', color:'#134e4a', border:'#99f6e4' },
+];
+const _tipoColorCache = {};
+
 function tipoBadge(tipo) {
   if (!tipo) return `<span style="color:var(--t3);font-size:12px;">—</span>`;
-  const cls = `b-tipo-${tipo.toLowerCase().replace(/\s+/g,'-')}`;
-  return `<span class="badge ${cls}" style="text-transform:capitalize;">${tipo}</span>`;
+  const key = tipo.toLowerCase().replace(/\s+/g,'-');
+  // Check if CSS class exists for known types
+  const known = ['escuela','kolel','yeshiva','personal','construccion','instirucion','fundacion'];
+  if (known.includes(key)) {
+    return `<span class="badge b-tipo-${key}" style="text-transform:capitalize;">${tipo}</span>`;
+  }
+  // Auto-assign a color from palette based on the type name
+  if (!_tipoColorCache[key]) {
+    const idx = Object.keys(_tipoColorCache).length % BADGE_PALETTE.length;
+    _tipoColorCache[key] = BADGE_PALETTE[idx];
+  }
+  const c = _tipoColorCache[key];
+  return `<span class="badge" style="background:${c.bg};color:${c.color};border:1px solid ${c.border};text-transform:capitalize;">${tipo}</span>`;
 }
 function popts(sel) { return `<option value="">—</option>`+paises.map(p=>`<option value="${p}"${sel===p?' selected':''}>${p}</option>`).join(''); }
 function dueBadge(due) {
