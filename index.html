@@ -351,15 +351,6 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
       <span>Pendientes</span>
       <span id="nav-badge" class="nav-badge" style="display:none"></span>
     </button>
-    <div class="nav-section">Registrar</div>
-    <button class="nav-item" data-label="Nueva donación" onclick="switchPage('nueva-don')">
-      <svg viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
-      <span>Nueva donación</span>
-    </button>
-    <button class="nav-item" data-label="Nuevo pendiente" onclick="switchPage('nueva-pend')">
-      <svg viewBox="0 0 24 24"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-      <span>Nuevo pendiente</span>
-    </button>
     <div class="nav-section">Sistema</div>
     <button class="nav-item" data-label="Configuración" onclick="switchPage('config')">
       <svg viewBox="0 0 24 24"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
@@ -401,7 +392,33 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
     </div>
 
     <div id="sec-donaciones" class="sec">
-      <div class="page-title">Donaciones confirmadas</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+        <div class="page-title" style="margin-bottom:0;">Donaciones confirmadas</div>
+        <button class="btn" onclick="toggleForm('don')" id="toggle-form-don" style="padding:8px 16px;font-size:13px;display:flex;align-items:center;gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
+          Nueva donación
+        </button>
+      </div>
+      <!-- Inline form -->
+      <div id="form-don" style="display:none;" class="card" style="margin-bottom:1.25rem;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:1rem;color:var(--t1);">Nueva donación</div>
+        <div id="ok-don" class="ok-msg"></div>
+        <div id="err-don" class="err-msg"></div>
+        <div class="fg">
+          <div class="fgi"><label>Fecha</label><input type="date" id="nd-fecha"></div>
+          <div class="fgi"><label>Categoría</label><select id="nd-tipo"></select></div>
+          <div class="fgi"><label>Institución</label><input type="text" id="nd-inst" placeholder="Nombre de institución"></div>
+          <div class="fgi"><label>Recibido por</label><input type="text" id="nd-recv" placeholder="Nombre"></div>
+          <div class="fgi"><label>País</label><select id="nd-pais"></select></div>
+          <div class="fgi"><label>Monto (USD)</label><input type="number" id="nd-monto" placeholder="0" min="0"></div>
+          <div class="fgi"><label>Meta</label><div id="nd-meta-info" style="padding:10px 12px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg2);font-size:13px;color:var(--t2);">Cargando...</div></div>
+          <div class="fgi ff"><label>Notas</label><textarea id="nd-notas" placeholder="Comentarios adicionales..."></textarea></div>
+        </div>
+        <div style="margin-top:1.25rem;display:flex;gap:8px;">
+          <button class="btn" id="btn-don" onclick="addDonacion()">Registrar donación</button>
+          <button class="ba" onclick="toggleForm('don')">Cancelar</button>
+        </div>
+      </div>
       <div class="filters">
         <input type="text" id="search-don" placeholder="Buscar donante, institución..." oninput="renderDonaciones()">
         <select id="ft-don" onchange="renderDonaciones()"></select>
@@ -416,7 +433,33 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
     </div>
 
     <div id="sec-pendientes" class="sec">
-      <div class="page-title">Donaciones pendientes</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+        <div class="page-title" style="margin-bottom:0;">Donaciones pendientes</div>
+        <button class="btn" onclick="toggleForm('pend')" id="toggle-form-pend" style="padding:8px 16px;font-size:13px;display:flex;align-items:center;gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
+          Nuevo pendiente
+        </button>
+      </div>
+      <!-- Inline form -->
+      <div id="form-pend" style="display:none;" class="card" style="margin-bottom:1.25rem;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:1rem;color:var(--t1);">Nuevo pendiente</div>
+        <div id="ok-pend" class="ok-msg"></div>
+        <div id="err-pend" class="err-msg"></div>
+        <div class="fg">
+          <div class="fgi"><label>Fecha de registro</label><input type="date" id="np-fecha"></div>
+          <div class="fgi"><label>Fecha esperada</label><input type="date" id="np-due"></div>
+          <div class="fgi"><label>Categoría</label><select id="np-tipo"></select></div>
+          <div class="fgi"><label>País</label><select id="np-pais"></select></div>
+          <div class="fgi"><label>Institución</label><input type="text" id="np-inst" placeholder="Nombre de institución"></div>
+          <div class="fgi"><label>Recibido por / Contacto</label><input type="text" id="np-recv" placeholder="Nombre"></div>
+          <div class="fgi"><label>Monto esperado (USD)</label><input type="number" id="np-monto" placeholder="0" min="0"></div>
+          <div class="fgi ff"><label>Notas / Recordatorio</label><textarea id="np-notas" placeholder="Detalles del compromiso..."></textarea></div>
+        </div>
+        <div style="margin-top:1.25rem;display:flex;gap:8px;">
+          <button class="btn" id="btn-pend" onclick="addPendiente()">Registrar pendiente</button>
+          <button class="ba" onclick="toggleForm('pend')">Cancelar</button>
+        </div>
+      </div>
       <div class="filters">
         <input type="text" id="search-pend" placeholder="Buscar..." oninput="renderPendientes()">
         <select id="ft-pend" onchange="renderPendientes()"></select>
@@ -432,43 +475,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 
     
 
-    <div id="sec-nueva-don" class="sec">
-      <div class="page-title">Nueva donación</div>
-      <div class="card">
-        <div id="ok-don" class="ok-msg"></div>
-        <div id="err-don" class="err-msg"></div>
-        <div class="fg">
-          <div class="fgi"><label>Fecha</label><input type="date" id="nd-fecha"></div>
-          <div class="fgi"><label>Categoría</label><select id="nd-tipo"></select></div>
-          <div class="fgi"><label>Institución</label><input type="text" id="nd-inst" placeholder="Nombre de institución"></div>
-          <div class="fgi"><label>Recibido por</label><input type="text" id="nd-recv" placeholder="Nombre"></div>
-          <div class="fgi"><label>País</label><select id="nd-pais"></select></div>
-          <div class="fgi"><label>Monto (USD)</label><input type="number" id="nd-monto" placeholder="0" min="0"></div>
-          <div class="fgi"><label>Meta</label><div id="nd-meta-info" style="padding:10px 12px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg2);font-size:13px;color:var(--t2);">Cargando...</div></div>
-          <div class="fgi ff"><label>Notas</label><textarea id="nd-notas" placeholder="Comentarios adicionales..."></textarea></div>
-        </div>
-        <div style="margin-top:1.25rem;"><button class="btn" id="btn-don" onclick="addDonacion()">Registrar donación</button></div>
-      </div>
-    </div>
 
-    <div id="sec-nueva-pend" class="sec">
-      <div class="page-title">Nuevo pendiente</div>
-      <div class="card">
-        <div id="ok-pend" class="ok-msg"></div>
-        <div id="err-pend" class="err-msg"></div>
-        <div class="fg">
-          <div class="fgi"><label>Fecha de registro</label><input type="date" id="np-fecha"></div>
-          <div class="fgi"><label>Fecha esperada</label><input type="date" id="np-due"></div>
-          <div class="fgi"><label>Categoría</label><select id="np-tipo"></select></div>
-          <div class="fgi"><label>País</label><select id="np-pais"></select></div>
-          <div class="fgi"><label>Institución</label><input type="text" id="np-inst" placeholder="Nombre de institución"></div>
-          <div class="fgi"><label>Recibido por / Contacto</label><input type="text" id="np-recv" placeholder="Nombre"></div>
-          <div class="fgi"><label>Monto esperado (USD)</label><input type="number" id="np-monto" placeholder="0" min="0"></div>
-          <div class="fgi ff"><label>Notas / Recordatorio</label><textarea id="np-notas" placeholder="Detalles del compromiso..."></textarea></div>
-        </div>
-        <div style="margin-top:1.25rem;"><button class="btn" id="btn-pend" onclick="addPendiente()">Registrar pendiente</button></div>
-      </div>
-    </div>
 
     <!-- IMPORTAR EXCEL -->
     
@@ -1057,6 +1064,7 @@ async function addDonacion(){
     document.getElementById('nd-fecha').value=today();
     showOk('ok-don','Donación registrada correctamente.');
     renderMetrics(); renderDonaciones();
+    setTimeout(()=>toggleForm('don'), 1500);
   } catch(e){ showErr('err-don',e.message); }
   btn.disabled=false; btn.textContent='Registrar donación';
 }
@@ -1075,6 +1083,7 @@ async function addPendiente(){
     document.getElementById('np-fecha').value=today();
     showOk('ok-pend','Pendiente registrado correctamente.');
     renderMetrics(); renderReminder(); renderPendientes(); renderDashPending();
+    setTimeout(()=>toggleForm('pend'), 1500);
   } catch(e){ showErr('err-pend',e.message); }
   btn.disabled=false; btn.textContent='Registrar pendiente';
 }
@@ -1147,7 +1156,19 @@ async function changePassword() {
   } catch(e) { showErr('pwd-err', e.message); }
 }
 
-const PAGE_TITLES={dashboard:'Dashboard',donaciones:'Donaciones confirmadas',pendientes:'Donaciones pendientes','nueva-don':'Nueva donación','nueva-pend':'Nuevo pendiente',config:'Configuración'};
+function toggleForm(type) {
+  const form = document.getElementById(`form-${type}`);
+  const open = form.style.display === 'none' || form.style.display === '';
+  form.style.display = open ? 'block' : 'none';
+  if (open) {
+    if (type === 'don') { document.getElementById('nd-fecha').value = today(); refreshSelects(); renderMetaInfo(); }
+    if (type === 'pend') { document.getElementById('np-fecha').value = today(); refreshSelects(); }
+    // Scroll form into view
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+const PAGE_TITLES={dashboard:'Dashboard',donaciones:'Donaciones confirmadas',pendientes:'Donaciones pendientes',graficas:'Gráficas',config:'Configuración'};
 
 // ── Excel Import ──
 let importRows = [];
@@ -1431,8 +1452,7 @@ function switchPage(page){
   if(page==='config'){loadTipos().then(()=>{renderConfigTipos();refreshSelects();});loadPaises().then(()=>{renderConfigPaises();refreshSelects();});renderMetas();switchCfgTab('general');}
 
   if(page==='pendientes')renderPendientes();
-  if(page==='nueva-don'){document.getElementById('nd-fecha').value=today();renderMetaInfo();}
-  if(page==='nueva-pend')document.getElementById('np-fecha').value=today();
+
 }
 
 function toggleSidebar(){
@@ -1480,12 +1500,13 @@ async function doLogin() {
     _session = data;
     currentUser = data.user;
     if (remember) {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+      localStorage.setItem(REMEMBER_KEY, email);
       sessionStorage.removeItem(SESSION_KEY);
     } else {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
-      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(REMEMBER_KEY);
     }
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+    localStorage.removeItem(SESSION_KEY);
     showApp();
     loadAll();
   } catch(e) {
@@ -1550,24 +1571,26 @@ async function doRegister() {
 async function doLogout() {
   try { await authFetch('/logout', 'POST'); } catch(e) {}
   _session = null; currentUser = null;
-  localStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem(SESSION_KEY);
+  // Keep REMEMBER_KEY so email stays pre-filled
   showLogin();
 }
 
+const REMEMBER_KEY = 'sb_remember'; // just stores email
+
 async function checkAuth() {
-  const saved = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
+  // Auto-login only from sessionStorage (current browser session)
+  const saved = sessionStorage.getItem(SESSION_KEY);
   if (saved) {
     try {
       const session = JSON.parse(saved);
       const exp = session.expires_at || 0;
       const now = Math.floor(Date.now() / 1000);
-      const inLocal = !!localStorage.getItem(SESSION_KEY);
       if (exp && now > exp - 60) {
         const refreshed = await authFetch('/token?grant_type=refresh_token', 'POST', { refresh_token: session.refresh_token });
         _session = refreshed;
         currentUser = refreshed.user;
-        (inLocal ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify(refreshed));
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(refreshed));
       } else {
         _session = session;
         currentUser = session.user;
@@ -1576,9 +1599,15 @@ async function checkAuth() {
       loadAll();
       return;
     } catch(e) {
-      localStorage.removeItem(SESSION_KEY);
       sessionStorage.removeItem(SESSION_KEY);
     }
+  }
+  // Pre-fill email if remembered
+  const remembered = localStorage.getItem(REMEMBER_KEY);
+  if (remembered) {
+    document.getElementById('login-email').value = remembered;
+    document.getElementById('remember-me').checked = true;
+    document.getElementById('login-pass').focus();
   }
   showLogin();
 }
