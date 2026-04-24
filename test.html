@@ -192,7 +192,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 
 /* ── LOGIN ── */
 .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1a2550 0%, #1e3a80 50%, #1a2550 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.login-card { background: var(–bg1); border-radius: 20px; padding: 2.5rem 2rem; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.login-card { background: #ffffff; border-radius: 20px; padding: 2.5rem 2rem; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
 .login-logo { text-align: center; margin-bottom: 2rem; }
 .login-logo-icon { width: 52px; height: 52px; background: var(–blue-l); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
 .login-logo-icon svg { width: 26px; height: 26px; stroke: var(–blue); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -200,8 +200,8 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 .login-logo h2 { font-size: 22px; font-weight: 700; color: var(–t1); letter-spacing: -.02em; }
 .login-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
 .login-field label { font-size: 11px; color: var(–t2); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-.login-field input { font-size: 14px; padding: 11px 14px; border-radius: var(–rm); border: 1.5px solid var(–bt); background: var(–bg2); color: var(–t1); transition: all .15s; }
-.login-field input:focus { outline: none; border-color: var(–blue); background: var(–bg1); box-shadow: 0 0 0 3px rgba(30,107,230,.12); }
+.login-field input { font-size: 14px; padding: 11px 14px; border-radius: var(–rm); border: 1.5px solid rgba(30,40,100,0.15); background: #f5f6fa; color: #0f1117; transition: all .15s; }
+.login-field input:focus { outline: none; border-color: var(–blue); background: #ffffff; box-shadow: 0 0 0 3px rgba(30,107,230,.12); }
 .login-btn { width: 100%; padding: 12px; background: var(–blue); color: #fff; border: none; border-radius: var(–rm); font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 0.75rem; transition: all .15s; box-shadow: 0 4px 14px rgba(30,107,230,.35); letter-spacing: .01em; }
 .login-btn:hover { background: var(–blue-d); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(30,107,230,.45); }
 .login-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
@@ -356,15 +356,6 @@ th, td { padding: 8px 9px; }
     <button class="nav-item" data-label="Entidades" onclick="switchPage('entidades')">
       <svg viewBox="0 0 24 24"><path d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z"/></svg>
       <span>Entidades</span>
-    </button>
-    <div class="nav-section">Registrar</div>
-    <button class="nav-item" data-label="Nueva donación" onclick="switchPage('nueva-don')">
-      <svg viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
-      <span>Nueva donación</span>
-    </button>
-    <button class="nav-item" data-label="Nuevo pendiente" onclick="switchPage('nueva-pend')">
-      <svg viewBox="0 0 24 24"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-      <span>Nuevo pendiente</span>
     </button>
     <div class="nav-section">Sistema</div>
     <button class="nav-item" data-label="Configuración" onclick="switchPage('config')">
