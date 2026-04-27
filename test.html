@@ -583,7 +583,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
         <div id="metas-err" class="err-msg"></div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>Año</th><th style="text-align:right;">Meta (USD)</th><th>Estado</th><th style="width:110px;"></th></tr></thead>
+            <thead><tr><th>Año</th><th style="text-align:right;">Meta (USD)</th><th style="text-align:right;">Donado</th><th>Cumplimiento</th><th>Estado</th><th style="width:110px;"></th></tr></thead>
             <tbody id="metas-body"></tbody>
           </table>
           <p id="metas-empty" class="empty" style="display:none;padding:1.5rem 0;font-size:13px;">No hay metas configuradas.</p>
@@ -850,8 +850,8 @@ async function saveConfig(key, value) {
 
 // ── Metrics ──
 function renderMetrics() {
-  const tD=donaciones.reduce((a,d)=>a+(d.monto||0),0);
-  const tP=pendientes.reduce((a,p)=>a+(p.monto||0),0);
+  const srcPen = metaActiva ? pendientes.filter(p=>p.meta_id===metaActiva.id) : pendientes;
+  const tP=srcPen.reduce((a,p)=>a+(p.monto||0),0);
   const tMeta=metaActiva?donaciones.filter(d=>d.meta_id===metaActiva.id).reduce((a,d)=>a+(d.monto||0),0):null;
   const metaCard = tMeta!==null
     ? `<div class="metric" style="cursor:pointer;" onclick="switchPage('donaciones')"><div class="ml">Meta ${metaActiva.anio}</div><div class="mv">${fmt(tMeta)}</div><div class="ms">de ${fmt(metaActiva.meta)}</div></div>`
@@ -1119,13 +1119,27 @@ async function renderMetas() {
   const body = document.getElementById('metas-body');
   const empty = document.getElementById('metas-empty');
   if(!body) return;
-  body.innerHTML = '<tr><td colspan="4"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>';
+  body.innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>';
   await loadMetas();
   if(!metas.length){ body.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
-  body.innerHTML = metas.map(m => `<tr>
+  body.innerHTML = metas.map(m => {
+    const donado = donaciones.filter(d=>d.meta_id===m.id).reduce((a,d)=>a+(d.monto||0),0);
+    const pct = m.meta > 0 ? Math.round(donado / m.meta * 100) : 0;
+    const barColor = pct>=100?'#16a34a':pct>=70?'#f59e0b':'#3266ad';
+    const pctColor = pct>=100?'#15803d':pct>=70?'#92400e':'var(--t2)';
+    return `<tr>
     <td style="font-weight:600;">${m.anio}</td>
     <td style="text-align:right;" class="amount">${fmt(m.meta)}</td>
+    <td style="text-align:right;" class="amount">${fmt(donado)}</td>
+    <td style="min-width:140px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;height:6px;background:var(--bg3);border-radius:999px;overflow:hidden;">
+          <div style="width:${Math.min(pct,100)}%;height:100%;background:${barColor};border-radius:999px;transition:width .4s;"></div>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:${pctColor};min-width:36px;">${pct}%</span>
+      </div>
+    </td>
     <td>${m.activa
       ? '<span class="badge" style="background:#dcfce7;color:#15803d;border:1px solid #86efac;">Activa</span>'
       : '<span class="badge" style="background:var(--bg2);color:var(--t3);border:1px solid var(--bt);">Inactiva</span>'}</td>
@@ -1133,7 +1147,8 @@ async function renderMetas() {
       ${!m.activa ? `<button class="confirm-btn" onclick="activarMeta('${m.id}')" style="font-size:11px;padding:4px 9px;">Activar</button>` : '<span style="font-size:11px;color:var(--t3);">Activa</span>'}
       ${ib('del',`delMeta('${m.id}')`,'del')}
     </div></td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
   renderMetrics(); renderDashMeta();
 }
 
@@ -1232,11 +1247,13 @@ let charts={};
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function renderCharts(prefix){
   const byT={},byP={};
-  donaciones.forEach(d=>{const t=d.tipo||'sin tipo';byT[t]=(byT[t]||0)+(d.monto||0);byP[d.pais||'—']=(byP[d.pais||'—']||0)+(d.monto||0);});
+  const srcDon = metaActiva ? donaciones.filter(d=>d.meta_id===metaActiva.id) : donaciones;
+  const srcPen = metaActiva ? pendientes.filter(p=>p.meta_id===metaActiva.id) : pendientes;
+  srcDon.forEach(d=>{const t=d.tipo||'sin tipo';byT[t]=(byT[t]||0)+(d.monto||0);byP[d.pais||'—']=(byP[d.pais||'—']||0)+(d.monto||0);});
   const tL=Object.keys(byT),tD=Object.values(byT);
   const pL=Object.keys(byP),pD=Object.values(byP);
-  const tDon=donaciones.reduce((a,d)=>a+(d.monto||0),0);
-  const tPen=pendientes.reduce((a,p)=>a+(p.monto||0),0);
+  const tDon=srcDon.reduce((a,d)=>a+(d.monto||0),0);
+  const tPen=srcPen.reduce((a,p)=>a+(p.monto||0),0);
   ['chart-tipo','chart-pais'].forEach(id=>destroyChart(prefix+id));
   charts[prefix+'chart-tipo']=new Chart(document.getElementById(prefix+'chart-tipo'),{type:'doughnut',data:{labels:tL,datasets:[{data:tD,backgroundColor:COLORS.slice(0,tL.length),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}});
   document.getElementById(prefix+'leg-tipo').innerHTML=tL.map((l,i)=>`<div class="li"><div class="ld" style="background:${COLORS[i%COLORS.length]}"></div>${l}: ${fmt(tD[i])}</div>`).join('');
@@ -1364,7 +1381,7 @@ async function scanCertWithAI(imgType) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': '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',
+        'x-api-key': '',
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
