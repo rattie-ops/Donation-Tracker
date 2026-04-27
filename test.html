@@ -28,6 +28,7 @@
   --rm: 10px; --rl: 14px; --sidebar: 228px;
   --shadow-sm: 0 1px 4px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.14), 0 4px 8px rgba(0,0,0,0.06);
 }
 @media(prefers-color-scheme:dark){
   :root{
@@ -940,15 +941,36 @@ function renderDonaciones() {
     </tr>`;
   }).join('');
 }
+let _repeatDonId = null;
 async function repeatDon(id){
   const d=donaciones.find(x=>x.id===id);
   if(!d)return;
+  _repeatDonId = id;
+  const name = d.recv||d.inst||'Sin nombre';
+  document.getElementById('repeat-dialog-name').textContent = `${name} · ${fmt(d.monto)}`;
+  document.getElementById('repeat-monto').value = d.monto;
+  document.getElementById('repeat-due').value = '';
+  const dlg = document.getElementById('repeat-dialog');
+  dlg.style.display = 'flex';
+  setTimeout(() => document.getElementById('repeat-monto').select(), 50);
+}
+function closeRepeatDialog(){
+  document.getElementById('repeat-dialog').style.display = 'none';
+  _repeatDonId = null;
+}
+async function confirmRepeat(){
+  const d = donaciones.find(x=>x.id===_repeatDonId);
+  if(!d)return;
+  const monto = parseFloat(document.getElementById('repeat-monto').value)||0;
+  if(!monto){ alert('Ingresa un monto.'); return; }
+  const due = document.getElementById('repeat-due').value;
   try {
-    const data={fecha:today(),due:'',tipo:d.tipo,inst:d.inst,recv:d.recv,pais:d.pais,monto:d.monto,notas:d.notas,user_id:currentUser.id,meta_id:metaActiva?.id||null};
+    const data={fecha:today(),due,tipo:d.tipo,inst:d.inst,recv:d.recv,pais:d.pais,monto,notas:d.notas,user_id:currentUser.id,meta_id:metaActiva?.id||null};
     const res=await sb('pendientes','POST',data);
     if(res&&res[0]) pendientes.unshift(res[0]);
     renderMetrics(); renderReminder(); renderDashPending();
     showOk('ok-don',`✓ ${d.recv||d.inst||'Donación'} agregada a pendientes.`);
+    closeRepeatDialog();
   } catch(e){ alert('Error: '+e.message); }
 }
 function startDon(id){editDon=id;renderDonaciones();}
@@ -1909,5 +1931,25 @@ document.getElementById('nd-fecha').value=today();
 document.getElementById('np-fecha').value=today();
 checkAuth();
 </script>
+<!-- Repeat Donation Dialog -->
+<div id="repeat-dialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;align-items:center;justify-content:center;" onclick="if(event.target===this)closeRepeatDialog()">
+  <div style="background:var(--bg1);border-radius:var(--rl);padding:1.75rem;width:100%;max-width:380px;margin:1rem;box-shadow:var(--shadow-lg);">
+    <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:0.5rem;">Repetir donación</div>
+    <div id="repeat-dialog-name" style="font-size:13px;color:var(--t2);margin-bottom:1.25rem;"></div>
+    <div class="fgi" style="margin-bottom:1.25rem;">
+      <label>Monto (USD)</label>
+      <input type="number" id="repeat-monto" min="0" style="font-size:16px;" onkeydown="if(event.key==='Enter')confirmRepeat()">
+    </div>
+    <div class="fgi" style="margin-bottom:1.5rem;">
+      <label>Fecha esperada (opcional)</label>
+      <input type="date" id="repeat-due">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="ba" onclick="closeRepeatDialog()">Cancelar</button>
+      <button class="btn" onclick="confirmRepeat()">Agregar a pendientes</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
