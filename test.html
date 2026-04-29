@@ -988,7 +988,8 @@ function exportDonaciones() {
   const headers = ['Fecha','Meta','Categoría','Institución','Recibido por','País','Monto','Notas'];
   const data = rows.map(d => {
     const meta = metas.find(m=>m.id===d.meta_id);
-    return [d.fecha||'', meta?meta.anio:'', d.tipo||'', d.inst||'', d.recv||'', d.pais||'', d.monto||0, d.notas||''];
+    const fecha = d.fecha ? (() => { const p=d.fecha.split('-'); return `${p[1]}/${p[2]}/${p[0]}`; })() : '';
+    return [fecha, meta?meta.anio:'', d.tipo||'', d.inst||'', d.recv||'', d.pais||'', d.monto||0, d.notas||''];
   });
   const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
   ws['!cols'] = [{wch:12},{wch:8},{wch:14},{wch:22},{wch:22},{wch:12},{wch:10},{wch:30}];
