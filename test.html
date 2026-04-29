@@ -705,11 +705,41 @@ function getH() {
   return { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token };
 }
 
+async function refreshSessionIfNeeded() {
+  if (!_session) return;
+  const exp = _session.expires_at || 0;
+  const now = Math.floor(Date.now() / 1000);
+  if (exp && now > exp - 120) { // refresh 2 min before expiry
+    try {
+      const refreshed = await authFetch('/token?grant_type=refresh_token', 'POST', { refresh_token: _session.refresh_token });
+      _session = refreshed;
+      currentUser = refreshed.user;
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(refreshed));
+    } catch(e) { console.warn('Token refresh failed:', e); }
+  }
+}
+
 async function sb(table, method='GET', body=null, query='') {
+  await refreshSessionIfNeeded();
   const res = await fetch(`${SB_URL}/rest/v1/${table}${query}`, {
     method, headers: { ...getH(), ...(method!=='GET'?{'Prefer':'return=representation'}:{}) },
     body: body ? JSON.stringify(body) : null
   });
+  // If JWT expired mid-request, try once more after refresh
+  if (res.status === 401) {
+    try {
+      const refreshed = await authFetch('/token?grant_type=refresh_token', 'POST', { refresh_token: _session?.refresh_token });
+      _session = refreshed; currentUser = refreshed.user;
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(refreshed));
+      const retry = await fetch(`${SB_URL}/rest/v1/${table}${query}`, {
+        method, headers: { ...getH(), ...(method!=='GET'?{'Prefer':'return=representation'}:{}) },
+        body: body ? JSON.stringify(body) : null
+      });
+      if (!retry.ok) { const e = await retry.text(); throw new Error(e); }
+      const t2 = await retry.text();
+      return t2 ? JSON.parse(t2) : [];
+    } catch(e) { throw new Error('Sesión expirada. Por favor recarga la página.'); }
+  }
   if (!res.ok) { const e = await res.text(); throw new Error(e); }
   const text = await res.text();
   return text ? JSON.parse(text) : [];
