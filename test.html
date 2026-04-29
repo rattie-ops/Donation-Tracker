@@ -984,7 +984,7 @@ function renderDonaciones() {
 }
 function exportDonaciones() {
   const rows = [...(_filteredDonaciones.length ? _filteredDonaciones : donaciones)]
-    .sort((a,b) => (a.fecha||'') > (b.fecha||'') ? 1 : -1);
+    .sort((a,b) => (b.fecha||'') > (a.fecha||'') ? 1 : -1);
   if (!rows.length) { alert('No hay donaciones para exportar.'); return; }
   const headers = ['Fecha','Meta','Categoría','Institución','Recibido por','País','Monto','Notas'];
   const data = rows.map(d => {
