@@ -437,6 +437,11 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
         <input type="text" id="search-don" placeholder="Buscar donante, institución..." oninput="renderDonaciones()">
         <select id="ft-don" onchange="renderDonaciones()"></select>
         <select id="fp-don" onchange="renderDonaciones()"></select>
+        <select id="fm-don" onchange="renderDonaciones()"><option value="">Todas las metas</option></select>
+        <button onclick="exportDonaciones()" style="padding:8px 14px;font-size:13px;font-weight:600;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t2);cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all .12s;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg1)'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar
+        </button>
       </div>
       <div class="card" style="padding:0;">
         <div class="tbl-wrap">
@@ -705,11 +710,41 @@ function getH() {
   return { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token };
 }
 
+async function refreshSessionIfNeeded() {
+  if (!_session) return;
+  const exp = _session.expires_at || 0;
+  const now = Math.floor(Date.now() / 1000);
+  if (exp && now > exp - 120) { // refresh 2 min before expiry
+    try {
+      const refreshed = await authFetch('/token?grant_type=refresh_token', 'POST', { refresh_token: _session.refresh_token });
+      _session = refreshed;
+      currentUser = refreshed.user;
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(refreshed));
+    } catch(e) { console.warn('Token refresh failed:', e); }
+  }
+}
+
 async function sb(table, method='GET', body=null, query='') {
+  await refreshSessionIfNeeded();
   const res = await fetch(`${SB_URL}/rest/v1/${table}${query}`, {
     method, headers: { ...getH(), ...(method!=='GET'?{'Prefer':'return=representation'}:{}) },
     body: body ? JSON.stringify(body) : null
   });
+  // If JWT expired mid-request, try once more after refresh
+  if (res.status === 401) {
+    try {
+      const refreshed = await authFetch('/token?grant_type=refresh_token', 'POST', { refresh_token: _session?.refresh_token });
+      _session = refreshed; currentUser = refreshed.user;
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(refreshed));
+      const retry = await fetch(`${SB_URL}/rest/v1/${table}${query}`, {
+        method, headers: { ...getH(), ...(method!=='GET'?{'Prefer':'return=representation'}:{}) },
+        body: body ? JSON.stringify(body) : null
+      });
+      if (!retry.ok) { const e = await retry.text(); throw new Error(e); }
+      const t2 = await retry.text();
+      return t2 ? JSON.parse(t2) : [];
+    } catch(e) { throw new Error('Sesión expirada. Por favor recarga la página.'); }
+  }
   if (!res.ok) { const e = await res.text(); throw new Error(e); }
   const text = await res.text();
   return text ? JSON.parse(text) : [];
@@ -807,6 +842,9 @@ function refreshSelects() {
   ['nd-pais','np-pais'].forEach(id=>document.getElementById(id).innerHTML=popts(''));
   ['ft-don','ft-pend'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const sv=el.value;el.innerHTML='<option value="">Todas las categorías</option>'+tipos.map(t=>`<option${sv===t?' selected':''}>${t}</option>`).join('');});
   ['fp-don','fp-pend'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const sv=el.value;el.innerHTML='<option value="">Todos los países</option>'+paises.map(p=>`<option${sv===p?' selected':''}>${p}</option>`).join('');});
+  // Meta filter for donaciones
+  const fm=document.getElementById('fm-don');
+  if(fm){const sv=fm.value;fm.innerHTML='<option value="">Todas las metas</option>'+metas.map(m=>`<option value="${m.id}"${sv===m.id?' selected':''}>${m.anio}${m.activa?' ★':''}</option>`).join('');}
 }
 
 // ── Load all data from Supabase ──
@@ -905,14 +943,17 @@ function renderDashPending() {
 }
 
 // ── Donaciones table ──
+let _filteredDonaciones = [];
 function renderDonaciones() {
   const q=(document.getElementById('search-don').value||'').toLowerCase();
   const ft=document.getElementById('ft-don').value;
   const fp=document.getElementById('fp-don').value;
+  const fm=document.getElementById('fm-don')?.value||'';
   const rows=donaciones.filter(d=>{
     const txt=((d.inst||'')+(d.recv||'')+(d.notas||'')).toLowerCase();
-    return(!q||txt.includes(q))&&(!ft||d.tipo===ft)&&(!fp||d.pais===fp);
+    return(!q||txt.includes(q))&&(!ft||d.tipo===ft)&&(!fp||d.pais===fp)&&(!fm||d.meta_id===fm);
   });
+  _filteredDonaciones = rows;
   const body=document.getElementById('don-body');
   if(!rows.length){body.innerHTML='';document.getElementById('don-empty').style.display='block';return;}
   document.getElementById('don-empty').style.display='none';
@@ -941,6 +982,28 @@ function renderDonaciones() {
     </tr>`;
   }).join('');
 }
+function exportDonaciones() {
+  const rows = [...(_filteredDonaciones.length ? _filteredDonaciones : donaciones)]
+    .sort((a,b) => (b.fecha||'') > (a.fecha||'') ? 1 : -1);
+  if (!rows.length) { alert('No hay donaciones para exportar.'); return; }
+  const headers = ['Fecha','Meta','Categoría','Institución','Recibido por','País','Monto','Notas'];
+  const data = rows.map(d => {
+    const meta = metas.find(m=>m.id===d.meta_id);
+    const fecha = d.fecha ? (() => { const p=d.fecha.split('-'); return `${p[1]}/${p[2]}/${p[0]}`; })() : '';
+    return [fecha, meta?meta.anio:'', d.tipo||'', d.inst||'', d.recv||'', d.pais||'', d.monto||0, d.notas||''];
+  });
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  ws['!cols'] = [{wch:12},{wch:8},{wch:14},{wch:22},{wch:22},{wch:12},{wch:10},{wch:30}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Donaciones');
+  const date = new Date().toISOString().slice(0,10);
+  const hasFilters = document.getElementById('search-don').value ||
+    document.getElementById('ft-don').value ||
+    document.getElementById('fp-don').value ||
+    document.getElementById('fm-don')?.value;
+  XLSX.writeFile(wb, `donaciones${hasFilters?'_filtradas':''}_${date}.xlsx`);
+}
+
 let _repeatDonId = null;
 async function repeatDon(id){
   const d=donaciones.find(x=>x.id===id);
