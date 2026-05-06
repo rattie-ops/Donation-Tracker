@@ -440,7 +440,6 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
         <select id="fm-don" onchange="renderDonaciones()"><option value="">Todas las metas</option></select>
         <button onclick="exportDonaciones()" style="padding:8px 14px;font-size:13px;font-weight:600;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t2);cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all .12s;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg1)'">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Exportar
         </button>
       </div>
       <div class="card" style="padding:0;">
@@ -1020,6 +1019,21 @@ function closeRepeatDialog(){
   document.getElementById('repeat-dialog').style.display = 'none';
   _repeatDonId = null;
 }
+async function confirmRepeatConfirmada(){
+  const d = donaciones.find(x=>x.id===_repeatDonId);
+  if(!d)return;
+  const monto = parseFloat(document.getElementById('repeat-monto').value)||0;
+  if(!monto){ alert('Ingresa un monto.'); return; }
+  try {
+    const data={fecha:today(),tipo:d.tipo,inst:d.inst,recv:d.recv,pais:d.pais,monto,notas:d.notas,user_id:currentUser.id,meta_id:metaActiva?.id||null};
+    const res=await sb('donaciones','POST',data);
+    if(res&&res[0]) donaciones.unshift(res[0]);
+    renderMetrics(); renderDonaciones();
+    showOk('ok-don',`✓ ${d.recv||d.inst||'Donación'} agregada a confirmadas.`);
+    closeRepeatDialog();
+  } catch(e){ alert('Error: '+e.message); }
+}
+
 async function confirmRepeat(){
   const d = donaciones.find(x=>x.id===_repeatDonId);
   if(!d)return;
@@ -1318,9 +1332,11 @@ function renderCharts(prefix){
   const tPen=srcPen.reduce((a,p)=>a+(p.monto||0),0);
   ['chart-tipo','chart-pais'].forEach(id=>destroyChart(prefix+id));
   charts[prefix+'chart-tipo']=new Chart(document.getElementById(prefix+'chart-tipo'),{type:'doughnut',data:{labels:tL,datasets:[{data:tD,backgroundColor:COLORS.slice(0,tL.length),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}});
-  document.getElementById(prefix+'leg-tipo').innerHTML=tL.map((l,i)=>`<div class="li"><div class="ld" style="background:${COLORS[i%COLORS.length]}"></div>${l}: ${fmt(tD[i])}</div>`).join('');
+  const tTotal=tD.reduce((a,b)=>a+b,0);
+  document.getElementById(prefix+'leg-tipo').innerHTML=tL.map((l,i)=>{const pct=tTotal?Math.round(tD[i]/tTotal*100):0;return `<div class="li"><div class="ld" style="background:${COLORS[i%COLORS.length]}"></div>${l}: ${pct}%</div>`;}).join('');
   charts[prefix+'chart-pais']=new Chart(document.getElementById(prefix+'chart-pais'),{type:'doughnut',data:{labels:pL,datasets:[{data:pD,backgroundColor:COLORS.slice(0,pL.length).reverse(),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}});
-  document.getElementById(prefix+'leg-pais').innerHTML=pL.map((l,i)=>`<div class="li"><div class="ld" style="background:${COLORS.slice().reverse()[i%COLORS.length]}"></div>${l}: ${fmt(pD[i])}</div>`).join('');
+  const pTotal=pD.reduce((a,b)=>a+b,0);
+  document.getElementById(prefix+'leg-pais').innerHTML=pL.map((l,i)=>{const pct=pTotal?Math.round(pD[i]/pTotal*100):0;return `<div class="li"><div class="ld" style="background:${COLORS.slice().reverse()[i%COLORS.length]}"></div>${l}: ${pct}%</div>`;}).join('');
 }
 
 // ── Navigation ──
@@ -2030,7 +2046,8 @@ checkAuth();
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button class="ba" onclick="closeRepeatDialog()">Cancelar</button>
-      <button class="btn" onclick="confirmRepeat()">Agregar a pendientes</button>
+      <button class="btn" style="background:var(--t1);" onclick="confirmRepeatConfirmada()">+ Confirmada</button>
+      <button class="btn" onclick="confirmRepeat()">+ Pendiente</button>
     </div>
   </div>
 </div>
