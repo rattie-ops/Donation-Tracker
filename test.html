@@ -887,8 +887,7 @@ async function saveConfig(key, value) {
 
 // ── Metrics ──
 function renderMetrics() {
-  const srcPen = metaActiva ? pendientes.filter(p=>p.meta_id===metaActiva.id) : pendientes;
-  const tP=srcPen.reduce((a,p)=>a+(p.monto||0),0);
+  const tP=pendientes.reduce((a,p)=>a+(p.monto||0),0);
   const tMeta=metaActiva?donaciones.filter(d=>d.meta_id===metaActiva.id).reduce((a,d)=>a+(d.monto||0),0):null;
   const metaCard = tMeta!==null
     ? `<div class="metric" style="cursor:pointer;" onclick="switchPage('donaciones')"><div class="ml">Meta ${metaActiva.anio}</div><div class="mv">${fmt(tMeta)}</div><div class="ms">de ${fmt(metaActiva.meta)}</div></div>`
@@ -1020,6 +1019,21 @@ function closeRepeatDialog(){
   document.getElementById('repeat-dialog').style.display = 'none';
   _repeatDonId = null;
 }
+async function confirmRepeatConfirmada(){
+  const d = donaciones.find(x=>x.id===_repeatDonId);
+  if(!d)return;
+  const monto = parseFloat(document.getElementById('repeat-monto').value)||0;
+  if(!monto){ alert('Ingresa un monto.'); return; }
+  try {
+    const data={fecha:today(),tipo:d.tipo,inst:d.inst,recv:d.recv,pais:d.pais,monto,notas:d.notas,user_id:currentUser.id,meta_id:metaActiva?.id||null};
+    const res=await sb('donaciones','POST',data);
+    if(res&&res[0]) donaciones.unshift(res[0]);
+    renderMetrics(); renderDonaciones();
+    showOk('ok-don',`✓ ${d.recv||d.inst||'Donación'} agregada a confirmadas.`);
+    closeRepeatDialog();
+  } catch(e){ alert('Error: '+e.message); }
+}
+
 async function confirmRepeat(){
   const d = donaciones.find(x=>x.id===_repeatDonId);
   if(!d)return;
@@ -1318,9 +1332,11 @@ function renderCharts(prefix){
   const tPen=srcPen.reduce((a,p)=>a+(p.monto||0),0);
   ['chart-tipo','chart-pais'].forEach(id=>destroyChart(prefix+id));
   charts[prefix+'chart-tipo']=new Chart(document.getElementById(prefix+'chart-tipo'),{type:'doughnut',data:{labels:tL,datasets:[{data:tD,backgroundColor:COLORS.slice(0,tL.length),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}});
-  document.getElementById(prefix+'leg-tipo').innerHTML=tL.map((l,i)=>`<div class="li"><div class="ld" style="background:${COLORS[i%COLORS.length]}"></div>${l}: ${fmt(tD[i])}</div>`).join('');
+  const tTotal=tD.reduce((a,b)=>a+b,0);
+  document.getElementById(prefix+'leg-tipo').innerHTML=tL.map((l,i)=>{const pct=tTotal?Math.round(tD[i]/tTotal*100):0;return `<div class="li"><div class="ld" style="background:${COLORS[i%COLORS.length]}"></div>${l}: ${pct}%</div>`;}).join('');
   charts[prefix+'chart-pais']=new Chart(document.getElementById(prefix+'chart-pais'),{type:'doughnut',data:{labels:pL,datasets:[{data:pD,backgroundColor:COLORS.slice(0,pL.length).reverse(),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}});
-  document.getElementById(prefix+'leg-pais').innerHTML=pL.map((l,i)=>`<div class="li"><div class="ld" style="background:${COLORS.slice().reverse()[i%COLORS.length]}"></div>${l}: ${fmt(pD[i])}</div>`).join('');
+  const pTotal=pD.reduce((a,b)=>a+b,0);
+  document.getElementById(prefix+'leg-pais').innerHTML=pL.map((l,i)=>{const pct=pTotal?Math.round(pD[i]/pTotal*100):0;return `<div class="li"><div class="ld" style="background:${COLORS.slice().reverse()[i%COLORS.length]}"></div>${l}: ${pct}%</div>`;}).join('');
 }
 
 // ── Navigation ──
@@ -2030,7 +2046,8 @@ checkAuth();
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button class="ba" onclick="closeRepeatDialog()">Cancelar</button>
-      <button class="btn" onclick="confirmRepeat()">Agregar a pendientes</button>
+      <button class="btn" style="background:var(--t1);" onclick="confirmRepeatConfirmada()">+ Confirmada</button>
+      <button class="btn" onclick="confirmRepeat()">+ Pendiente</button>
     </div>
   </div>
 </div>
