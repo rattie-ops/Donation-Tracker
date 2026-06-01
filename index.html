@@ -404,6 +404,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
     <div id="sec-dashboard" class="sec active">
       <div id="metrics" class="metrics"></div>
       <div id="dash-meta"></div>
+      <div id="dash-donantes"></div>
       <div class="chart-grid">
         <div class="card"><div class="ct">Monto por categoría</div><div class="cw"><canvas id="d-chart-tipo"></canvas></div><div class="leg" id="d-leg-tipo"></div></div>
         <div class="card"><div class="ct">Monto por país</div><div class="cw"><canvas id="d-chart-pais"></canvas></div><div class="leg" id="d-leg-pais"></div></div>
@@ -602,11 +603,22 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
       <div class="card" style="padding:0;">
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>Nombre</th><th style="text-align:right;">Saldo a favor</th><th>Notas</th><th style="width:68px;"></th></tr></thead>
+            <thead><tr><th>Nombre</th><th style="text-align:right;">Total donado</th><th style="text-align:right;">Total pagado</th><th style="text-align:right;">Pendiente pago</th><th style="text-align:right;">Saldo a favor</th><th>Notas</th><th style="width:120px;"></th></tr></thead>
             <tbody id="donantes-body"></tbody>
           </table>
         </div>
         <p id="donantes-empty" class="empty" style="display:none;">No hay donantes registrados.</p>
+      </div>
+
+      <!-- Historial de pagos por donante -->
+      <div id="historial-pagos-wrap" style="margin-top:1.25rem;display:none;">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <div style="font-size:14px;font-weight:600;color:var(--t1);">Historial de pagos — <span id="historial-donante-nombre" style="color:var(--blue);"></span></div>
+            <button class="ba" onclick="cerrarHistorial()">Cerrar</button>
+          </div>
+          <div id="historial-pagos-body"></div>
+        </div>
       </div>
     </div>
 
@@ -973,6 +985,7 @@ function renderMetrics() {
   if(pendientes.length){badge.style.display='inline-block';badge.textContent=pendientes.length;}
   else badge.style.display='none';
   renderDashMeta();
+  renderDashDonantes();
 }
 
 function renderDashMeta() {
@@ -984,6 +997,39 @@ function renderDashMeta() {
   const barColor=pctD>=100?'#1D9E75':pctD>=70?'#BA7517':'#3266ad';
   const cls=pctD>=100?'over':pctD>=70?'mid':'under';
   wrap.innerHTML=`<div class="meta-progress-card"><div class="meta-progress-header"><span>Progreso hacia la meta ${metaActiva.anio}</span><span class="meta-pct-badge ${cls}">${pctD}%</span></div><div class="progress-bg"><div class="progress-fill" style="width:${pct}%;background:${barColor}"></div></div><div class="progress-lbl"><span>${fmt(tD)} donado</span><span>Meta: ${fmt(metaActiva.meta)}</span></div></div>`;
+}
+
+function renderDashDonantes() {
+  const wrap = document.getElementById('dash-donantes');
+  if (!wrap) return;
+  if (!modoMultidonante || !donantes.length) { wrap.innerHTML = ''; return; }
+
+  const cards = donantes.map(d => {
+    const donsDonante = donaciones.filter(x => x.donante_id === d.id);
+    const totalDonado  = donsDonante.reduce((a, x) => a + (x.monto||0), 0);
+    const totalPagado  = donsDonante.filter(x => x.pagado).reduce((a, x) => a + (x.monto||0), 0);
+    const pendientePago = totalDonado - totalPagado;
+    const saldo = d.saldo_favor || 0;
+    const pendsPend = pendientes.filter(x => x.donante_id === d.id).reduce((a, x) => a + (x.monto||0), 0);
+    const isActivo = donanteActivo?.id === d.id;
+
+    return `<div class="metric${isActivo ? '' : ''}" style="cursor:pointer;border:${isActivo ? '2px solid var(--blue)' : '1px solid var(--bt)'};" onclick="cambiarDonante('${d.id}')">
+      <div class="ml" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>${d.nombre}</span>
+        ${isActivo ? '<span style="font-size:9px;background:var(--blue);color:#fff;padding:1px 6px;border-radius:999px;">Activo</span>' : ''}
+      </div>
+      <div class="mv">${fmt(totalDonado)}</div>
+      <div class="ms" style="display:flex;flex-direction:column;gap:2px;margin-top:6px;">
+        <span style="color:${pendientePago>0?'#b91c1c':'#15803d'};font-weight:600;font-size:12px;">
+          ${pendientePago > 0 ? `Por cobrar: ${fmt(pendientePago)}` : '✓ Al día'}
+        </span>
+        ${saldo > 0 ? `<span style="color:#15803d;font-size:11px;">Saldo: ${fmt(saldo)}</span>` : ''}
+        ${pendsPend > 0 ? `<span style="color:#b45309;font-size:11px;">Pendiente: ${fmt(pendsPend)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML = `<div class="metrics" style="margin-bottom:1.75rem;">${cards}</div>`;
 }
 
 function renderReminder() {
@@ -2158,6 +2204,9 @@ function refreshDonantesSelector() {
 
 function cambiarDonante(id) {
   donanteActivo = donantes.find(d => d.id === id) || null;
+  // Sync topbar selector
+  const sel = document.getElementById('donante-selector');
+  if (sel) sel.value = id;
   renderMetrics();
   renderDonaciones();
   renderPendientes();
@@ -2169,7 +2218,7 @@ async function renderDonantes() {
   const body = document.getElementById('donantes-body');
   const empty = document.getElementById('donantes-empty');
   if (!body) return;
-  body.innerHTML = '<tr><td colspan="4"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>';
+  body.innerHTML = '<tr><td colspan="7"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>';
   donantes = await sb('donantes', 'GET', null, '?order=nombre.asc');
   if (!donantes.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
@@ -2211,6 +2260,145 @@ async function delDonante(id, nombre) {
   } catch(e) { alert('Error: ' + e.message); }
 }
 
+// ── Historial de pagos ──
+async function verHistorial(donanteId) {
+  const d = donantes.find(x => x.id === donanteId);
+  if (!d) return;
+
+  const wrap = document.getElementById('historial-pagos-wrap');
+  const body = document.getElementById('historial-pagos-body');
+  const nombre = document.getElementById('historial-donante-nombre');
+
+  nombre.textContent = d.nombre;
+  body.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  try {
+    const pagos = await sb('pagos', 'GET', null, `?donante_id=eq.${donanteId}&order=created_at.desc`);
+    if (!pagos.length) {
+      body.innerHTML = '<p class="empty" style="padding:1rem 0;">No hay pagos registrados para este donante.</p>';
+      return;
+    }
+    body.innerHTML = `<div class="tbl-wrap"><table>
+      <thead><tr><th>Fecha</th><th style="text-align:right;">Monto</th><th>Notas</th></tr></thead>
+      <tbody>
+        ${pagos.map(p => {
+          const fecha = p.created_at ? fmtD(p.created_at.slice(0,10)) : '—';
+          return `<tr>
+            <td style="color:var(--t2);white-space:nowrap;">${fecha}</td>
+            <td style="text-align:right;" class="amount">${fmt(p.monto)}</td>
+            <td style="color:var(--t2);font-size:12px;">${p.notas||''}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>
+    <div style="padding:10px 0 0;font-size:13px;color:var(--t2);font-weight:500;">
+      Total pagado: <strong>${fmt(pagos.reduce((a,p)=>a+(p.monto||0),0))}</strong>
+    </div>`;
+  } catch(e) {
+    body.innerHTML = `<p class="empty">Error al cargar: ${e.message}</p>`;
+  }
+}
+
+function cerrarHistorial() {
+  document.getElementById('historial-pagos-wrap').style.display = 'none';
+}
+
+// ── Pagos ──
+function abrirPago(donanteId) {
+  const d = donantes.find(x => x.id === donanteId);
+  if (!d) return;
+  document.getElementById('pago-donante-id').value = donanteId;
+  document.getElementById('pago-donante-nombre').textContent = d.nombre;
+  // Calcular pendiente de pago
+  const donsDonante = donaciones.filter(x => x.donante_id === donanteId && !x.pagado);
+  const pendiente = donsDonante.reduce((a, x) => a + (x.monto||0), 0);
+  const saldo = d.saldo_favor || 0;
+  document.getElementById('pago-pendiente-info').textContent =
+    `Pendiente de pago: ${fmt(pendiente)}${saldo > 0 ? ` · Saldo a favor: ${fmt(saldo)}` : ''}`;
+  document.getElementById('pago-monto').value = '';
+  document.getElementById('pago-notas').value = '';
+  document.getElementById('pago-err').style.display = 'none';
+  document.getElementById('pago-ok').style.display = 'none';
+  document.getElementById('pago-dialog').style.display = 'flex';
+  setTimeout(() => document.getElementById('pago-monto').focus(), 50);
+}
+
+function cerrarPago() {
+  document.getElementById('pago-dialog').style.display = 'none';
+}
+
+async function confirmarPago() {
+  const donanteId = document.getElementById('pago-donante-id').value;
+  const monto = parseFloat(document.getElementById('pago-monto').value) || 0;
+  const notas = document.getElementById('pago-notas').value.trim();
+  if (!monto) { showErr('pago-err', 'Ingresa un monto.'); return; }
+
+  const btn = document.getElementById('btn-pago');
+  btn.disabled = true; btn.textContent = 'Procesando...';
+
+  try {
+    const donante = donantes.find(d => d.id === donanteId);
+    // Donaciones no pagadas de este donante, de más antigua a más nueva
+    const noPagadas = donaciones
+      .filter(d => d.donante_id === donanteId && !d.pagado)
+      .sort((a, b) => (a.fecha||'') < (b.fecha||'') ? -1 : 1);
+
+    let restante = monto + (donante.saldo_favor || 0);
+    const aMarcar = [];
+
+    for (const don of noPagadas) {
+      if (restante <= 0) break;
+      if (restante >= don.monto) {
+        aMarcar.push(don.id);
+        restante -= don.monto;
+      } else {
+        // No alcanza para cubrir esta donación completa — se detiene
+        break;
+      }
+    }
+
+    // Marcar donaciones como pagadas
+    for (const id of aMarcar) {
+      await fetch(`${SB_URL}/rest/v1/donaciones?id=eq.${id}`, {
+        method: 'PATCH', headers: getH(), body: JSON.stringify({ pagado: true })
+      });
+      const idx = donaciones.findIndex(d => d.id === id);
+      if (idx >= 0) donaciones[idx].pagado = true;
+    }
+
+    // Guardar saldo a favor
+    const nuevoSaldo = Math.max(restante, 0);
+    await fetch(`${SB_URL}/rest/v1/donantes?id=eq.${donanteId}`, {
+      method: 'PATCH', headers: getH(), body: JSON.stringify({ saldo_favor: nuevoSaldo })
+    });
+    const idxD = donantes.findIndex(d => d.id === donanteId);
+    if (idxD >= 0) donantes[idxD].saldo_favor = nuevoSaldo;
+
+    // Registrar en tabla pagos
+    await sb('pagos', 'POST', {
+      donante_id: donanteId, monto, notas, user_id: currentUser.id
+    });
+
+    const msg = aMarcar.length > 0
+      ? `✓ ${aMarcar.length} donación(es) marcada(s) como pagadas.${nuevoSaldo > 0 ? ` Saldo a favor: ${fmt(nuevoSaldo)}` : ''}`
+      : `✓ Pago registrado. Saldo a favor: ${fmt(nuevoSaldo)}`;
+
+    document.getElementById('pago-ok').textContent = msg;
+    document.getElementById('pago-ok').style.display = 'block';
+    renderDonaciones();
+    renderDonantes();
+    // Refrescar historial si está abierto para este donante
+    const histWrap = document.getElementById('historial-pagos-wrap');
+    if (histWrap && histWrap.style.display !== 'none') verHistorial(donanteId);
+    setTimeout(() => cerrarPago(), 2000);
+  } catch(e) {
+    showErr('pago-err', e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Registrar pago';
+}
+
 // ── Init ──
 document.getElementById('nd-fecha').value=today();
 document.getElementById('np-fecha').value=today();
@@ -2233,6 +2421,33 @@ checkAuth();
       <button class="ba" onclick="closeRepeatDialog()">Cancelar</button>
       <button class="btn" style="background:var(--t1);" onclick="confirmRepeatConfirmada()">+ Confirmada</button>
       <button class="btn" onclick="confirmRepeat()">+ Pendiente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pago Dialog -->
+<div id="pago-dialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;align-items:center;justify-content:center;" onclick="if(event.target===this)cerrarPago()">
+  <div style="background:var(--bg1);border-radius:var(--rl);padding:1.75rem;width:100%;max-width:420px;margin:1rem;box-shadow:var(--shadow-lg);">
+    <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:0.25rem;">Registrar pago</div>
+    <div id="pago-donante-nombre" style="font-size:13px;color:var(--t2);margin-bottom:0.25rem;font-weight:600;"></div>
+    <div id="pago-pendiente-info" style="font-size:12px;color:var(--t3);margin-bottom:1.25rem;"></div>
+    <input type="hidden" id="pago-donante-id">
+    <div id="pago-ok" class="ok-msg"></div>
+    <div id="pago-err" class="err-msg"></div>
+    <div class="fgi" style="margin-bottom:1rem;">
+      <label>Monto del pago (USD)</label>
+      <input type="number" id="pago-monto" min="0" style="font-size:16px;" onkeydown="if(event.key==='Enter')confirmarPago()">
+    </div>
+    <div class="fgi" style="margin-bottom:1.5rem;">
+      <label>Notas (opcional)</label>
+      <input type="text" id="pago-notas" placeholder="Ej: transferencia, cheque...">
+    </div>
+    <div style="background:var(--bg2);border-radius:var(--rm);padding:10px 14px;font-size:12px;color:var(--t2);margin-bottom:1.25rem;border:1px solid var(--bt);">
+      💡 El pago se aplicará a las donaciones más antiguas primero. Si sobra, queda como saldo a favor.
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="ba" onclick="cerrarPago()">Cancelar</button>
+      <button class="btn" id="btn-pago" onclick="confirmarPago()">Registrar pago</button>
     </div>
   </div>
 </div>
