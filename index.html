@@ -715,10 +715,12 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
           <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">5. PAIS</span>
           <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">6. MONTO</span>
           <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2);color:var(--t2);">7. NOTAS</span>
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--blue-l);color:#1d4ed8;border:1px solid var(--blue-m);">8. DONANTE <em style="font-weight:400;">(opcional)</em></span>
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--blue-l);color:#1d4ed8;border:1px solid var(--blue-m);">9. PAGADO <em style="font-weight:400;">(opcional)</em></span>
         </div>
         <p style="font-size:12px;color:var(--t3);margin-bottom:0.5rem;">Si incluyes encabezados, el orden no importa — se detectan automáticamente.</p>
-        <p style="font-size:12px;color:var(--t2);margin-bottom:3px;"><strong>Modo multidonante:</strong> agrega una columna <strong>DONANTE</strong> con el nombre del donante por fila. Si el donante no existe se crea automáticamente.</p>
-        <p style="font-size:12px;color:var(--t2);">Columna <strong>PAGADO</strong> opcional: acepta <em>si, sí, yes, true, 1, x</em> para marcarlo como pagado al importar.</p>
+        <p style="font-size:12px;color:var(--t2);margin-bottom:3px;"><strong>DONANTE:</strong> nombre del donante por fila. Si no existe se crea automáticamente. Solo aplica en modo multidonante.</p>
+        <p style="font-size:12px;color:var(--t2);">PAGADO: acepta <em>si, sí, yes, true, 1, x</em> para marcarlo como pagado al importar. Cualquier otro valor o celda vacía = no pagado.</p>
       </div>
 
       <!-- Upload area -->
@@ -1854,7 +1856,7 @@ function findCol(headers, field) {
 }
 
 // Default column order when no headers detected (matches your original Excel)
-const DEFAULT_ORDER = ['fecha','tipo','inst','recv','pais','monto','notas'];
+const DEFAULT_ORDER = ['fecha','tipo','inst','recv','pais','monto','notas','donante_nombre','pagado'];
 
 function processPaste() {
   const text = document.getElementById('paste-area').value.trim();
@@ -1896,6 +1898,8 @@ function processPaste() {
       pais:  (r[4] || '').toString().trim(),
       monto: parseFloat((r[5] || '0').toString().replace(/[,$\s]/g,'')) || 0,
       notas: (r[6] || '').toString().trim(),
+      donante_nombre: (r[7] || '').toString().trim(),
+      pagado_raw: (r[8] || '').toString().trim().toLowerCase(),
       _status: 'pendiente'
     }));
     if (!importRows.length) { alert('No se encontraron filas con datos.'); return; }
