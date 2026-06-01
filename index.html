@@ -1126,7 +1126,7 @@ function renderDonaciones() {
   const thead = document.getElementById('don-thead');
   if (thead) {
     thead.innerHTML = modoMultidonante
-      ? `<tr><th>Fecha</th><th>Meta</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th style="max-width:80px;">Notas</th><th style="text-align:center;width:56px;">Pagado</th><th style="width:68px;"></th></tr>`
+      ? `<tr><th style="width:70px;">Fecha</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th style="width:60px;">País</th><th style="text-align:right;">Monto</th><th style="max-width:80px;">Notas</th><th style="text-align:center;width:56px;">Pagado</th><th style="width:68px;"></th></tr>`
       : `<tr><th>Fecha</th><th>Meta</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="width:68px;"></th></tr>`;
   }
 
@@ -1137,21 +1137,43 @@ function renderDonaciones() {
     const pagadoCol = modoMultidonante
       ? `<td style="text-align:center;"><input type="checkbox" ${d.pagado?'checked':''} onchange="togglePagado('${d.id}',this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--blue);"></td>`
       : '';
-    if(editDon===d.id) return `<tr class="editing">
-      <td><input class="ii" type="date" id="ed-fecha" value="${d.fecha||''}" style="min-width:110px;"></td>
-      <td>${metaBadge(d.meta_id)}</td>
-      <td><select class="is" id="ed-tipo">${topts(d.tipo)}</select></td>
-      <td><input class="ii" id="ed-inst" value="${d.inst||''}"></td>
-      <td><input class="ii" id="ed-recv" value="${d.recv||''}"></td>
-      <td><select class="is" id="ed-pais">${popts(d.pais)}</select></td>
-      <td><input class="ii" type="number" id="ed-monto" value="${d.monto||0}" style="text-align:right;min-width:80px;"></td>
-      <td><input class="ii" id="ed-notas" value="${d.notas||''}"></td>
-      ${modoMultidonante ? `<td></td>` : ''}
-      <td><div style="display:flex;gap:4px;">${ib('save',`saveDon('${d.id}')`,'save')}${ib('cancel','cancelDon()','cancel')}</div></td>
-    </tr>`;
+    if(editDon===d.id) {
+      if (modoMultidonante) return `<tr class="editing">
+        <td><input class="ii" type="date" id="ed-fecha" value="${d.fecha||''}" style="width:90px;"></td>
+        <td><select class="is" id="ed-tipo">${topts(d.tipo)}</select></td>
+        <td><input class="ii" id="ed-inst" value="${d.inst||''}"></td>
+        <td><input class="ii" id="ed-recv" value="${d.recv||''}"></td>
+        <td><input class="ii" id="ed-pais" value="${d.pais||''}" style="width:60px;"></td>
+        <td><input class="ii" type="number" id="ed-monto" value="${d.monto||0}" style="text-align:right;min-width:70px;"></td>
+        <td><input class="ii" id="ed-notas" value="${d.notas||''}"></td>
+        <td></td>
+        <td><div style="display:flex;gap:4px;">${ib('save',`saveDon('${d.id}')`,'save')}${ib('cancel','cancelDon()','cancel')}</div></td>
+      </tr>`;
+      return `<tr class="editing">
+        <td><input class="ii" type="date" id="ed-fecha" value="${d.fecha||''}" style="min-width:110px;"></td>
+        <td>${metaBadge(d.meta_id)}</td>
+        <td><select class="is" id="ed-tipo">${topts(d.tipo)}</select></td>
+        <td><input class="ii" id="ed-inst" value="${d.inst||''}"></td>
+        <td><input class="ii" id="ed-recv" value="${d.recv||''}"></td>
+        <td><select class="is" id="ed-pais">${popts(d.pais)}</select></td>
+        <td><input class="ii" type="number" id="ed-monto" value="${d.monto||0}" style="text-align:right;min-width:80px;"></td>
+        <td><input class="ii" id="ed-notas" value="${d.notas||''}"></td>
+        <td><div style="display:flex;gap:4px;">${ib('save',`saveDon('${d.id}')`,'save')}${ib('cancel','cancelDon()','cancel')}</div></td>
+      </tr>`;
+    }
     const rowStyle = modoMultidonante && d.pagado ? ' style="opacity:0.55;"' : '';
-    const notasWidth = modoMultidonante ? 'max-width:80px;' : 'max-width:200px;';
-    return `<tr${rowStyle}>
+    if (modoMultidonante) return `<tr${rowStyle}>
+      <td style="color:var(--t2);white-space:nowrap;font-size:12px;width:70px;">${fmtD(d.fecha)}</td>
+      <td>${tipoBadge(d.tipo)}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.inst||`<span style="color:var(--t3);">—</span>`}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.recv||`<span style="color:var(--t3);">—</span>`}</td>
+      <td style="color:var(--t2);font-size:12px;width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.pais||'—'}</td>
+      <td style="text-align:right;" class="amount">${fmt(d.monto)}</td>
+      <td style="color:var(--t2);font-size:12px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notas||''}</td>
+      ${pagadoCol}
+      <td><div style="display:flex;gap:4px;">${ib('edit',`startDon('${d.id}')`,'edit')}${ib('repeat',`repeatDon('${d.id}')`,'repeat')}${ib('del',`delDon('${d.id}')`,'del')}</div></td>
+    </tr>`;
+    return `<tr>
       <td style="color:var(--t2);white-space:nowrap;">${fmtD(d.fecha)}</td>
       <td>${metaBadge(d.meta_id)}</td>
       <td>${tipoBadge(d.tipo)}</td>
@@ -1159,8 +1181,7 @@ function renderDonaciones() {
       <td>${d.recv||`<span style="color:var(--t3);">—</span>`}</td>
       <td style="color:var(--t2);">${d.pais||'—'}</td>
       <td style="text-align:right;" class="amount">${fmt(d.monto)}</td>
-      <td style="color:var(--t2);font-size:12px;${notasWidth}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notas||''}</td>
-      ${pagadoCol}
+      <td style="color:var(--t2);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notas||''}</td>
       <td><div style="display:flex;gap:4px;">${ib('edit',`startDon('${d.id}')`,'edit')}${ib('repeat',`repeatDon('${d.id}')`,'repeat')}${ib('del',`delDon('${d.id}')`,'del')}</div></td>
     </tr>`;
   }).join('');
