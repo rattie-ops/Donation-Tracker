@@ -446,6 +446,12 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
         <select id="ft-don" onchange="renderDonaciones()"></select>
         <select id="fp-don" onchange="renderDonaciones()"></select>
         <select id="fm-don" onchange="renderDonaciones()"><option value="">Todas las metas</option></select>
+        <select id="fd-don" onchange="renderDonaciones()" style="display:none;"></select>
+        <select id="fpag-don" onchange="renderDonaciones()" style="display:none;">
+          <option value="">Pagado / No pagado</option>
+          <option value="si">Solo pagadas</option>
+          <option value="no">Solo no pagadas</option>
+        </select>
         <button onclick="exportDonaciones()" style="padding:8px 14px;font-size:13px;font-weight:600;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t2);cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all .12s;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg1)'">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
@@ -490,6 +496,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
         <input type="text" id="search-pend" placeholder="Buscar..." oninput="renderPendientes()">
         <select id="ft-pend" onchange="renderPendientes()"></select>
         <select id="fp-pend" onchange="renderPendientes()"></select>
+        <select id="fd-pend" onchange="renderPendientes()" style="display:none;"></select>
       </div>
       <div class="card" style="padding:0;">
         <div class="tbl-wrap">
@@ -888,6 +895,16 @@ function refreshSelects() {
   // Meta filter for donaciones
   const fm=document.getElementById('fm-don');
   if(fm){const sv=fm.value;fm.innerHTML='<option value="">Todas las metas</option>'+metas.map(m=>`<option value="${m.id}"${sv===m.id?' selected':''}>${m.anio}${m.activa?' ★':''}</option>`).join('');}
+  // Donante filters — solo visibles en modo multidonante
+  ['fd-don','fd-pend'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.style.display = modoMultidonante ? '' : 'none';
+    const sv=el.value;
+    el.innerHTML='<option value="">Todos los donantes</option>'+donantes.map(d=>`<option value="${d.id}"${sv===d.id?' selected':''}>${d.nombre}</option>`).join('');
+  });
+  const fpag=document.getElementById('fpag-don');
+  if(fpag) fpag.style.display = modoMultidonante ? '' : 'none';
 }
 
 // ── Load all data from Supabase ──
@@ -1004,10 +1021,14 @@ function renderDonaciones() {
   const ft=document.getElementById('ft-don').value;
   const fp=document.getElementById('fp-don').value;
   const fm=document.getElementById('fm-don')?.value||'';
+  const fd = document.getElementById('fd-don')?.value || '';
+  const fpag = document.getElementById('fpag-don')?.value || '';
   const rows=donaciones.filter(d=>{
     const txt=((d.inst||'')+(d.recv||'')+(d.notas||'')).toLowerCase();
     const matchDonante = !modoMultidonante || !donanteActivo || d.donante_id === donanteActivo.id;
-    return(!q||txt.includes(q))&&(!ft||d.tipo===ft)&&(!fp||d.pais===fp)&&(!fm||d.meta_id===fm)&&matchDonante;
+    const matchFiltDon = !fd || d.donante_id === fd;
+    const matchPagado = !fpag || (fpag==='si' ? d.pagado : !d.pagado);
+    return(!q||txt.includes(q))&&(!ft||d.tipo===ft)&&(!fp||d.pais===fp)&&(!fm||d.meta_id===fm)&&matchDonante&&matchFiltDon&&matchPagado;
   });
   _filteredDonaciones = rows;
 
@@ -1160,9 +1181,12 @@ function renderPendientes() {
   const q=(document.getElementById('search-pend').value||'').toLowerCase();
   const ft=document.getElementById('ft-pend').value;
   const fp=document.getElementById('fp-pend').value;
+  const fd = document.getElementById('fd-pend')?.value || '';
   const rows=pendientes.filter(d=>{
     const txt=((d.inst||'')+(d.recv||'')+(d.notas||'')).toLowerCase();
-    return(!q||txt.includes(q))&&(!ft||d.tipo===ft)&&(!fp||d.pais===fp);
+    const matchDonante = !modoMultidonante || !donanteActivo || d.donante_id === donanteActivo.id;
+    const matchFiltDon = !fd || d.donante_id === fd;
+    return(!q||txt.includes(q))&&(!ft||d.tipo===ft)&&(!fp||d.pais===fp)&&matchDonante&&matchFiltDon;
   }).sort((a,b)=>(a.due||'9999')>(b.due||'9999')?1:-1);
   const body=document.getElementById('pend-body');
   if(!rows.length){body.innerHTML='';document.getElementById('pend-empty').style.display='block';return;}
