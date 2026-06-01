@@ -908,8 +908,8 @@ async function loadAll() {
 
     // Leer toggles de config
     const cfgMap = Object.fromEntries((configRes||[]).map(c => [c.key, c.value]));
-    modoMultidonante = cfgMap['multidonante'] === 'true';
-    usarMetas        = cfgMap['usar_metas'] !== 'false';
+    modoMultidonante = cfgMap['multidonante'] === true || cfgMap['multidonante'] === 'true';
+    usarMetas        = cfgMap['usar_metas'] !== false && cfgMap['usar_metas'] !== 'false';
 
     // Cargar donantes si modo multidonante está activo
     if (modoMultidonante) {
