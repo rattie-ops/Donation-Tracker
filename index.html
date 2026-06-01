@@ -452,7 +452,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
       </div>
       <div class="card" style="padding:0;">
         <div class="tbl-wrap">
-          <table><thead><tr><th>Fecha</th><th>Meta</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="width:68px;"></th></tr></thead><tbody id="don-body"></tbody></table>
+          <table><thead id="don-thead"><tr><th>Fecha</th><th>Meta</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="width:68px;"></th></tr></thead><tbody id="don-body"></tbody></table>
         </div>
         <p id="don-empty" class="empty" style="display:none;">No hay donaciones.</p>
       </div>
@@ -1006,13 +1006,26 @@ function renderDonaciones() {
   const fm=document.getElementById('fm-don')?.value||'';
   const rows=donaciones.filter(d=>{
     const txt=((d.inst||'')+(d.recv||'')+(d.notas||'')).toLowerCase();
-    return(!q||txt.includes(q))&&(!ft||d.tipo===ft)&&(!fp||d.pais===fp)&&(!fm||d.meta_id===fm);
+    const matchDonante = !modoMultidonante || !donanteActivo || d.donante_id === donanteActivo.id;
+    return(!q||txt.includes(q))&&(!ft||d.tipo===ft)&&(!fp||d.pais===fp)&&(!fm||d.meta_id===fm)&&matchDonante;
   });
   _filteredDonaciones = rows;
+
+  // Update table header based on mode
+  const thead = document.getElementById('don-thead');
+  if (thead) {
+    thead.innerHTML = modoMultidonante
+      ? `<tr><th>Fecha</th><th>Meta</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="text-align:center;">Pagado</th><th style="width:68px;"></th></tr>`
+      : `<tr><th>Fecha</th><th>Meta</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="width:68px;"></th></tr>`;
+  }
+
   const body=document.getElementById('don-body');
   if(!rows.length){body.innerHTML='';document.getElementById('don-empty').style.display='block';return;}
   document.getElementById('don-empty').style.display='none';
   body.innerHTML=rows.map(d=>{
+    const pagadoCol = modoMultidonante
+      ? `<td style="text-align:center;"><input type="checkbox" ${d.pagado?'checked':''} onchange="togglePagado('${d.id}',this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--blue);"></td>`
+      : '';
     if(editDon===d.id) return `<tr class="editing">
       <td><input class="ii" type="date" id="ed-fecha" value="${d.fecha||''}" style="min-width:110px;"></td>
       <td>${metaBadge(d.meta_id)}</td>
@@ -1022,9 +1035,11 @@ function renderDonaciones() {
       <td><select class="is" id="ed-pais">${popts(d.pais)}</select></td>
       <td><input class="ii" type="number" id="ed-monto" value="${d.monto||0}" style="text-align:right;min-width:80px;"></td>
       <td><input class="ii" id="ed-notas" value="${d.notas||''}"></td>
+      ${modoMultidonante ? `<td></td>` : ''}
       <td><div style="display:flex;gap:4px;">${ib('save',`saveDon('${d.id}')`,'save')}${ib('cancel','cancelDon()','cancel')}</div></td>
     </tr>`;
-    return `<tr>
+    const rowStyle = modoMultidonante && d.pagado ? ' style="opacity:0.6;"' : '';
+    return `<tr${rowStyle}>
       <td style="color:var(--t2);white-space:nowrap;">${fmtD(d.fecha)}</td>
       <td>${metaBadge(d.meta_id)}</td>
       <td>${tipoBadge(d.tipo)}</td>
@@ -1033,6 +1048,7 @@ function renderDonaciones() {
       <td style="color:var(--t2);">${d.pais||'—'}</td>
       <td style="text-align:right;" class="amount">${fmt(d.monto)}</td>
       <td style="color:var(--t2);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notas||''}</td>
+      ${pagadoCol}
       <td><div style="display:flex;gap:4px;">${ib('edit',`startDon('${d.id}')`,'edit')}${ib('repeat',`repeatDon('${d.id}')`,'repeat')}${ib('del',`delDon('${d.id}')`,'del')}</div></td>
     </tr>`;
   }).join('');
@@ -1108,6 +1124,16 @@ async function confirmRepeat(){
 }
 function startDon(id){editDon=id;renderDonaciones();}
 function cancelDon(){editDon=null;renderDonaciones();}
+
+async function togglePagado(id, pagado) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/donaciones?id=eq.${id}`, {
+      method: 'PATCH', headers: getH(), body: JSON.stringify({ pagado })
+    });
+    const idx = donaciones.findIndex(d => d.id === id);
+    if (idx >= 0) donaciones[idx].pagado = pagado;
+  } catch(e) { alert('Error: ' + e.message); renderDonaciones(); }
+}
 async function saveDon(id){
   const fecha=document.getElementById('ed-fecha').value;
   const monto=parseFloat(document.getElementById('ed-monto').value)||0;
@@ -1191,7 +1217,7 @@ async function confirmPend(id) {
   const p=pendientes.find(x=>x.id===id);
   if(!p)return;
   try {
-    const newDon={fecha:today(),tipo:p.tipo,inst:p.inst,recv:p.recv,pais:p.pais,monto:p.monto,notas:p.notas,user_id:currentUser.id,meta_id:metaActiva?.id||null};
+    const newDon={fecha:today(),tipo:p.tipo,inst:p.inst,recv:p.recv,pais:p.pais,monto:p.monto,notas:p.notas,user_id:currentUser.id,meta_id:metaActiva?.id||null,donante_id:modoMultidonante?(p.donante_id||donanteActivo?.id||null):null,pagado:false};
     const res=await sb('donaciones','POST',newDon);
     if(res&&res[0]) donaciones.unshift(res[0]);
     await fetch(`${SB_URL}/rest/v1/pendientes?id=eq.${id}`,{method:'DELETE',headers:getH()});
@@ -1343,7 +1369,7 @@ async function addDonacion(){
   const btn=document.getElementById('btn-don');
   btn.disabled=true; btn.textContent='Guardando...';
   try {
-    const data={fecha,tipo:document.getElementById('nd-tipo').value,inst:document.getElementById('nd-inst').value.trim(),recv:document.getElementById('nd-recv').value.trim(),pais:document.getElementById('nd-pais').value,monto,notas:document.getElementById('nd-notas').value.trim(),user_id:currentUser.id,meta_id:metaActiva?.id||null};
+    const data={fecha,tipo:document.getElementById('nd-tipo').value,inst:document.getElementById('nd-inst').value.trim(),recv:document.getElementById('nd-recv').value.trim(),pais:document.getElementById('nd-pais').value,monto,notas:document.getElementById('nd-notas').value.trim(),user_id:currentUser.id,meta_id:metaActiva?.id||null,donante_id:modoMultidonante?(donanteActivo?.id||null):null,pagado:false};
     const res=await sb('donaciones','POST',data);
     if(res&&res[0]) donaciones.unshift(res[0]);
     ['nd-inst','nd-recv','nd-monto','nd-notas'].forEach(id=>document.getElementById(id).value='');
