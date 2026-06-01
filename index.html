@@ -1126,7 +1126,7 @@ function renderDonaciones() {
   const thead = document.getElementById('don-thead');
   if (thead) {
     thead.innerHTML = modoMultidonante
-      ? `<tr><th>Fecha</th><th>Meta</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="text-align:center;">Pagado</th><th style="width:68px;"></th></tr>`
+      ? `<tr><th>Fecha</th><th>Meta</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th style="max-width:80px;">Notas</th><th style="text-align:center;width:56px;">Pagado</th><th style="width:68px;"></th></tr>`
       : `<tr><th>Fecha</th><th>Meta</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="width:68px;"></th></tr>`;
   }
 
@@ -1149,7 +1149,8 @@ function renderDonaciones() {
       ${modoMultidonante ? `<td></td>` : ''}
       <td><div style="display:flex;gap:4px;">${ib('save',`saveDon('${d.id}')`,'save')}${ib('cancel','cancelDon()','cancel')}</div></td>
     </tr>`;
-    const rowStyle = modoMultidonante && d.pagado ? ' style="opacity:0.6;"' : '';
+    const rowStyle = modoMultidonante && d.pagado ? ' style="opacity:0.55;"' : '';
+    const notasWidth = modoMultidonante ? 'max-width:80px;' : 'max-width:200px;';
     return `<tr${rowStyle}>
       <td style="color:var(--t2);white-space:nowrap;">${fmtD(d.fecha)}</td>
       <td>${metaBadge(d.meta_id)}</td>
@@ -1158,7 +1159,7 @@ function renderDonaciones() {
       <td>${d.recv||`<span style="color:var(--t3);">—</span>`}</td>
       <td style="color:var(--t2);">${d.pais||'—'}</td>
       <td style="text-align:right;" class="amount">${fmt(d.monto)}</td>
-      <td style="color:var(--t2);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notas||''}</td>
+      <td style="color:var(--t2);font-size:12px;${notasWidth}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notas||''}</td>
       ${pagadoCol}
       <td><div style="display:flex;gap:4px;">${ib('edit',`startDon('${d.id}')`,'edit')}${ib('repeat',`repeatDon('${d.id}')`,'repeat')}${ib('del',`delDon('${d.id}')`,'del')}</div></td>
     </tr>`;
