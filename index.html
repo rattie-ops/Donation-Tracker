@@ -1575,7 +1575,11 @@ async function scanCertWithOCR(file) {
 }
 
 function parseCertText(txt) {
-  const lines = txt.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  // Remove lines that contain Hebrew characters
+  const lines = txt.split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0)
+    .filter(l => !/[\u0590-\u05FF]/.test(l));
   const full = lines.join('\n');
 
   function findLine(patterns) {
@@ -1620,11 +1624,10 @@ function parseCertText(txt) {
     for (const pat of labelPatterns) {
       const idx = lines.findIndex(l => pat.test(l));
       if (idx >= 0) {
-        // Look for the next non-label, non-Hebrew line after this
         for (let i = idx + 1; i < Math.min(idx + 6, lines.length); i++) {
           const l = lines[i];
-          // Skip lines that are themselves labels (contain known Spanish label words)
-          if (/[Tt]el[eé]fono|[Nn]ombre|[Pp]a[ií]s|[Aa]lumnos|[Pp]resupuesto|[Ss]uma|[Vv]isita|[Pp]orcentaje|[Dd]etalle|מס|שם|עיר|מספר|תקציב|סכום|בפעם|גובה|פירוט/.test(l)) continue;
+          // Skip lines that are themselves labels
+          if (/[Tt]el[eé]fono|[Nn]ombre\s+de|[Pp]a[ií]s\s*\/|[Aa]lumnos|[Pp]resupuesto|[Ss]uma\s+recibida|[Vv]isita\s+a|[Pp]orcentaje|[Dd]etalle/.test(l)) continue;
           if (l.length > 1) return l;
         }
       }
@@ -1637,51 +1640,41 @@ function parseCertText(txt) {
   // Find the block start by locating "NEZER EFRAIM" or whatever comes after the last label
 
   const nombre_institucion = valueAfterLabel([
-    /[Nn]ombre\s+de\s+la\s+[Ii]nstituci[oó]n/,
-    /שם\s*המוסד/,
-    /המוסד\s*$/
+    /[Nn]ombre\s+de\s+la\s+[Ii]nstituci[oó]n/
   ]) || findLine([/^([A-Z][A-Z\s]{3,})$(?!\n.*[Tt]el)/m]);
 
   const telefono_institucion = valueAfterLabel([
-    /[Tt]el[eé]fono\s+de\s+la\s+[Ii]nstituci[oó]n/,
-    /מס['']\s*טלפון\s+של\s+המוסד/
+    /[Tt]el[eé]fono\s+de\s+la\s+[Ii]nstituci[oó]n/
   ]) || findLine([/\b(0[0-9]{2}\s*[0-9]{3,4}\s*[0-9]{3,4})\b/]);
 
   const telefono_rabino_panama = valueAfterLabel([
-    /[Tt]el[eé]fono\s+del\s+[Rr]abino/,
-    /מס['']\s*טלפון\s+של\s+הרב/
+    /[Tt]el[eé]fono\s+del\s+[Rr]abino/
   ]) || findLine([/\b(0[0-9]{3}-[0-9]{4,5})\b/]);
 
   const pais_ciudad = valueAfterLabel([
-    /[Pp]a[ií]s\s*\/\s*[Cc]iudad/,
-    /עיר\s*\/\s*מדינה/
+    /[Pp]a[ií]s\s*\/\s*[Cc]iudad/
   ]);
 
   const num_alumnos = valueAfterLabel([
-    /[Nn]o\.\s+de\s+alumnos/,
-    /מספר\s+תלמידים/
+    /[Nn]o\.\s+de\s+alumnos/
   ]);
 
   const presupuestoStr = valueAfterLabel([
-    /[Pp]resupuesto\s+anual/,
-    /תקציב\s+שנתי/
+    /[Pp]resupuesto\s+anual/
   ]);
   const presupuesto_anual = presupuestoStr ? parseFloat(presupuestoStr.replace(/[,\s]/g,'')) || null : null;
 
   const sumaStr = valueAfterLabel([
-    /[Ss]uma\s+recibida\s+por\s+el\s+gobierno/,
-    /סכום\s+התקציב/
+    /[Ss]uma\s+recibida\s+por\s+el\s+gobierno/
   ]);
   const suma_gobierno = sumaStr ? parseFloat(sumaStr.replace(/[,\s]/g,'')) || null : null;
 
   const ultima_visita = valueAfterLabel([
-    /[ÚU]ltima\s+visita/,
-    /בפעם\s+האחרונה/
+    /[ÚU]ltima\s+visita/
   ]);
 
   const porcentaje_recibe = valueAfterLabel([
-    /[Pp]orcentaje\s+que\s+recibe/,
-    /גובה\s+עמלה/
+    /[Pp]orcentaje\s+que\s+recibe/
   ]);
 
   const detMatch = full.match(/[Dd]etalle\s+de\s+la\s+actividad[^:\n]*:?\s*\n([^\n]+(?:\n(?!NO ACEPTAR|Autorizado|DAVID|RABINO)[^\n]+)*)/);
