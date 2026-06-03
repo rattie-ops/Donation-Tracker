@@ -1575,12 +1575,11 @@ async function scanCertWithOCR(file) {
 }
 
 function parseCertText(txt) {
-  // Remove lines that contain Hebrew characters
+  // Remove lines with Hebrew characters
   const lines = txt.split('\n')
     .map(l => l.trim())
     .filter(l => l.length > 0)
     .filter(l => !/[\u0590-\u05FF]/.test(l));
-  console.log('=== FILTERED LINES ===\n' + lines.join('\n'));
   const full = lines.join('\n');
 
   function findLine(patterns) {
@@ -1598,88 +1597,107 @@ function parseCertText(txt) {
     return str;
   }
 
-  // ── Fields that appear inline with their label ──
-  const teuda = findLine([
-    /[Tt]euda\s+[Nn]o[.\s]+([A-Z0-9\/\-]+)/,
-    /מס['']\s*תעודה\s+([0-9]+\/[0-9]+)/
-  ]);
-
+  // ── Inline fields ──
+  const teuda = findLine([/[Tt]euda\s+[Nn]o[.\s]+([A-Z0-9\/\-]+)/]);
   const fecha_expedicion = parseDate(findLine([/[Ee]xpedici[oó]n[:\s]+([0-9\/]+)/]));
   const fecha_expiracion = parseDate(findLine([/[Ee]xpiraci[oó]n[:\s]+([0-9\/]+)/]));
+  const nombre_representante = findLine([/[Nn]ombre[:\s]+([A-ZÁÉÍÓÚÑA-Z][A-ZÁÉÍÓÚÑA-Z\s]+?)(?:\s+[A-Z])?$/m])?.replace(/\s+[A-Z]$/, '').trim() || null;
+  const pasaporte = findLine([/[Pp]asaporte[:\s]+([0-9A-Z]+)/]);
 
-  const nombre_representante = findLine([
-    /[Nn]ombre[:\s]+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]+?)(?:\s+[A-Z])?$/m,
-    /[Nn]ombre[:\s]+([^\n]+)/
-  ])?.replace(/\s+[A-Z]$/, '').trim() || null;
+  // ── Table fields — Vision outputs all labels first, then values in same order ──
+  // Labels in order: Nombre Institución, Tel Institución, Tel Rabino, [País/Ciudad missing], No. alumnos
+  // Values in order: NEZER EFRAIM, 052..., 0880..., Jerusalem Israel, 26 día..., (viernes continuation), 281840
+  // Then: Suma gobierno (empty), Última visita → mayo 2025, (porcentaje=salario next line)
 
-  const pasaporte = findLine([
-    /[Pp]asaporte[:\s]+([0-9A-Z]+)/,
-    /מס['']\s*דרכון\s+([0-9A-Z]+)/
-  ]);
+  // Find index of first label block
+  const idxNombreInst   = lines.findIndex(l => /[Nn]ombre\s+de\s+la\s+[Ii]nstituci[oó]n/.test(l));
+  const idxTelInst      = lines.findIndex(l => /[Tt]el[eé]fono\s+de\s+la\s+[Ii]nstituci[oó]n/.test(l));
+  const idxTelRabino    = lines.findIndex(l => /[Tt]el[eé]fono\s+del\s+[Rr]abino/.test(l));
+  const idxAlumnos      = lines.findIndex(l => /[Nn]o\.\s+de\s+alumnos/.test(l));
+  const idxPresupuesto  = lines.findIndex(l => /[Pp]resupuesto\s+anual/.test(l));
+  const idxSuma         = lines.findIndex(l => /[Ss]uma\s+recibida/.test(l));
+  const idxVisita       = lines.findIndex(l => /[ÚU]ltima\s+visita/.test(l));
+  const idxDetalle      = lines.findIndex(l => /[Dd]etalle\s+de\s+la\s+actividad/.test(l));
 
-  // ── Fields where label and value are on separate lines ──
-  // Vision puts all left-column labels together, then right-column values together.
-  // Strategy: find the value by looking at lines AFTER each known label block.
-
-  function valueAfterLabel(labelPatterns) {
-    for (const pat of labelPatterns) {
-      const idx = lines.findIndex(l => pat.test(l));
-      if (idx >= 0) {
-        for (let i = idx + 1; i < Math.min(idx + 6, lines.length); i++) {
-          const l = lines[i];
-          // Skip lines that are themselves labels
-          if (/[Tt]el[eé]fono|[Nn]ombre\s+de|[Pp]a[ií]s\s*\/|[Aa]lumnos|[Pp]resupuesto|[Ss]uma\s+recibida|[Vv]isita\s+a|[Pp]orcentaje|[Dd]etalle/.test(l)) continue;
-          if (l.length > 1) return l;
-        }
-      }
+  // Values start after the last label in the label block
+  // Find the first line after all consecutive labels that looks like a value
+  function firstValueAfter(labelIdx) {
+    if (labelIdx < 0) return null;
+    for (let i = labelIdx + 1; i < Math.min(labelIdx + 8, lines.length); i++) {
+      const l = lines[i];
+      if (/[Tt]el[eé]fono|[Nn]ombre\s+de|[Pp]a[ií]s\s*\/|[Aa]lumnos|[Pp]resupuesto|[Ss]uma\s+recibida|[ÚU]ltima\s+visita|[Pp]orcentaje|[Dd]etalle/.test(l)) continue;
+      if (l.length > 1) return { value: l, idx: i };
     }
     return null;
   }
 
-  // For this cert format, Vision groups values at the end of the left-column labels block.
-  // The values appear in this order after all labels: NEZER EFRAIM, phone inst, phone rabino, ciudad, alumnos, presupuesto, [suma gov blank], visita, porcentaje, detalle
-  // Find the block start by locating "NEZER EFRAIM" or whatever comes after the last label
+  // Get the value block start — first value line after the label cluster
+  const lastLabelIdx = Math.max(idxNombreInst, idxTelInst, idxTelRabino, idxAlumnos);
+  let valueBlockStart = -1;
+  for (let i = lastLabelIdx + 1; i < lines.length; i++) {
+    if (!/[Tt]el[eé]fono|[Nn]ombre\s+de|[Pp]a[ií]s\s*\/|[Aa]lumnos|[Pp]resupuesto|[Ss]uma\s+recibida|[ÚU]ltima\s+visita|[Pp]orcentaje|[Dd]etalle/.test(l => lines[i])) {
+      if (lines[i].length > 1) { valueBlockStart = i; break; }
+    }
+  }
 
-  const nombre_institucion = valueAfterLabel([
-    /[Nn]ombre\s+de\s+la\s+[Ii]nstituci[oó]n/
-  ]) || findLine([/^([A-Z][A-Z\s]{3,})$(?!\n.*[Tt]el)/m]);
+  // Values appear in this fixed order after label block:
+  // [0] nombre_institucion, [1] tel_institucion, [2] tel_rabino, [3] pais_ciudad, [4] num_alumnos (may span 2 lines), then presupuesto
+  const vb = valueBlockStart >= 0 ? valueBlockStart : lastLabelIdx + 1;
+  const nombre_institucion      = lines[vb]     || null;
+  const telefono_institucion    = lines[vb + 1] || null;
+  const telefono_rabino_panama  = lines[vb + 2] || null;
+  const pais_ciudad             = lines[vb + 3] || null;
 
-  const telefono_institucion = valueAfterLabel([
-    /[Tt]el[eé]fono\s+de\s+la\s+[Ii]nstituci[oó]n/
-  ]) || findLine([/\b(0[0-9]{2}\s*[0-9]{3,4}\s*[0-9]{3,4})\b/]);
+  // num_alumnos may span 2 lines (e.g. "26 día completo/13 día" + "viernes")
+  let num_alumnos = lines[vb + 4] || null;
+  let presupuestoOffset = 5;
+  if (num_alumnos && lines[vb + 5] && !/^[0-9]/.test(lines[vb + 5]) && lines[vb + 5].length < 20 && !/[Ss]uma|[ÚU]ltima|[Pp]orcentaje/.test(lines[vb + 5])) {
+    num_alumnos += ' ' + lines[vb + 5];
+    presupuestoOffset = 6;
+  }
 
-  const telefono_rabino_panama = valueAfterLabel([
-    /[Tt]el[eé]fono\s+del\s+[Rr]abino/
-  ]) || findLine([/\b(0[0-9]{3}-[0-9]{4,5})\b/]);
-
-  const pais_ciudad = valueAfterLabel([
-    /[Pp]a[ií]s\s*\/\s*[Cc]iudad/
-  ]);
-
-  const num_alumnos = valueAfterLabel([
-    /[Nn]o\.\s+de\s+alumnos/
-  ]);
-
-  const presupuestoStr = valueAfterLabel([
-    /[Pp]resupuesto\s+anual/
-  ]);
+  const presupuestoStr = lines[vb + presupuestoOffset] || null;
   const presupuesto_anual = presupuestoStr ? parseFloat(presupuestoStr.replace(/[,\s]/g,'')) || null : null;
 
-  const sumaStr = valueAfterLabel([
-    /[Ss]uma\s+recibida\s+por\s+el\s+gobierno/
-  ]);
-  const suma_gobierno = sumaStr ? parseFloat(sumaStr.replace(/[,\s]/g,'')) || null : null;
+  // Suma gobierno — look for value between Suma label and Última visita label
+  let suma_gobierno = null;
+  if (idxSuma >= 0 && idxVisita > idxSuma + 1) {
+    const candidate = lines[idxSuma + 1];
+    if (candidate && /^[0-9]/.test(candidate)) {
+      suma_gobierno = parseFloat(candidate.replace(/[,\s]/g,'')) || null;
+    }
+  }
 
-  const ultima_visita = valueAfterLabel([
-    /[ÚU]ltima\s+visita/
-  ]);
+  // Última visita → next non-label line
+  let ultima_visita = null;
+  if (idxVisita >= 0) {
+    for (let i = idxVisita + 1; i < Math.min(idxVisita + 4, lines.length); i++) {
+      if (!/[Pp]orcentaje|[Dd]etalle/.test(lines[i]) && lines[i].length > 1) {
+        ultima_visita = lines[i]; break;
+      }
+    }
+  }
 
-  const porcentaje_recibe = valueAfterLabel([
-    /[Pp]orcentaje\s+que\s+recibe/
-  ]);
+  // Porcentaje → line right after ultima_visita value
+  let porcentaje_recibe = null;
+  if (idxVisita >= 0) {
+    for (let i = idxVisita + 1; i < Math.min(idxVisita + 5, lines.length); i++) {
+      if (lines[i] === ultima_visita) {
+        porcentaje_recibe = lines[i + 1] || null; break;
+      }
+    }
+  }
 
-  const detMatch = full.match(/[Dd]etalle\s+de\s+la\s+actividad[^:\n]*:?\s*\n([^\n]+(?:\n(?!NO ACEPTAR|Autorizado|DAVID|RABINO)[^\n]+)*)/);
-  const detalle_actividad = detMatch ? detMatch[1].trim().replace(/\n/g,' ') : null;
+  // Detalle → everything after the label until footer
+  let detalle_actividad = null;
+  if (idxDetalle >= 0) {
+    const detLines = [];
+    for (let i = idxDetalle + 1; i < lines.length; i++) {
+      if (/NO ACEPTAR|Autorizado|DAVID|RABINO|PANAMA|SHEVET/.test(lines[i])) break;
+      detLines.push(lines[i]);
+    }
+    detalle_actividad = detLines.join(' ').trim() || null;
+  }
 
   return {
     teuda_numero: teuda,
