@@ -782,7 +782,26 @@ function entidadBadge(entidad_id) {
   const e = entidades.find(x=>x.id===entidad_id);
   if (!e) return `<span style="color:var(--t3);font-size:11px;">—</span>`;
   const name = e.nombre_institucion || e.nombre_representante || 'Entidad';
-  return `<span class="badge" style="background:#f0fdf4;color:#15803d;border:1px solid #86efac;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;" title="${name}">${name}</span>`;
+  return `<span class="badge" onclick="goToEntidad('${entidad_id}')" style="background:var(--bg2);color:var(--t2);border:1px solid var(--bt);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;cursor:pointer;" title="Ver entidad: ${name}">${name}</span>`;
+}
+
+function goToEntidad(entidad_id) {
+  switchPage('entidades');
+  // Wait for renderEntidades to finish then highlight the row
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#entidades-body tr');
+    rows.forEach(tr => tr.style.background = '');
+    // Find the row by matching edit button onclick
+    for (const tr of rows) {
+      if (tr.innerHTML.includes(entidad_id)) {
+        tr.style.background = 'var(--blue-l)';
+        tr.style.transition = 'background 1s';
+        tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => { tr.style.background = ''; }, 2500);
+        break;
+      }
+    }
+  }, 400);
 }
 
 // ── Helpers ──
@@ -1086,13 +1105,31 @@ async function delDon(id){
 }
 
 let _linkDonId = null;
+function buildLinkOptions(filter='', currentId=null) {
+  const q = filter.toLowerCase();
+  const filtered = entidades.filter(e => {
+    const name = (e.nombre_institucion||e.nombre_representante||'').toLowerCase();
+    return !q || name.includes(q);
+  });
+  const sel = document.getElementById('link-entidad-select');
+  sel.innerHTML = '<option value="">— Sin entidad —</option>' +
+    filtered.map(e => {
+      const name = e.nombre_institucion || e.nombre_representante || e.id;
+      return `<option value="${e.id}"${currentId===e.id?' selected':''}>${name}</option>`;
+    }).join('');
+}
+function filterLinkEntidades() {
+  const q = document.getElementById('link-entidad-search').value;
+  const don = donaciones.find(d=>d.id===_linkDonId);
+  buildLinkOptions(q, don?.entidad_id||null);
+}
 function openLinkEntidad(donId) {
   _linkDonId = donId;
   const don = donaciones.find(d=>d.id===donId);
-  const sel = document.getElementById('link-entidad-select');
-  sel.innerHTML = '<option value="">— Sin entidad —</option>' +
-    entidades.map(e=>`<option value="${e.id}"${don?.entidad_id===e.id?' selected':''}>${e.nombre_institucion||e.nombre_representante||e.id}</option>`).join('');
+  document.getElementById('link-entidad-search').value = '';
+  buildLinkOptions('', don?.entidad_id||null);
   document.getElementById('link-entidad-dialog').style.display = 'flex';
+  setTimeout(()=>document.getElementById('link-entidad-search').focus(), 50);
 }
 function closeLinkEntidad() {
   document.getElementById('link-entidad-dialog').style.display = 'none';
@@ -2233,9 +2270,13 @@ checkAuth();
   <div style="background:var(--bg1);border-radius:var(--rl);padding:1.75rem;width:100%;max-width:360px;margin:1rem;box-shadow:var(--shadow-lg);">
     <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:0.5rem;">Asociar entidad</div>
     <div style="font-size:13px;color:var(--t2);margin-bottom:1.25rem;">Selecciona la entidad vinculada a esta donación.</div>
+    <div class="fgi" style="margin-bottom:0.75rem;">
+      <label>Buscar</label>
+      <input type="text" id="link-entidad-search" placeholder="Nombre de institución..." style="font-size:14px;padding:9px 12px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t1);" oninput="filterLinkEntidades()">
+    </div>
     <div class="fgi" style="margin-bottom:1.5rem;">
       <label>Entidad</label>
-      <select id="link-entidad-select" style="font-size:14px;padding:10px 12px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t1);"></select>
+      <select id="link-entidad-select" size="5" style="font-size:14px;padding:6px 8px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t1);height:auto;"></select>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button class="ba" onclick="closeLinkEntidad()">Cancelar</button>
