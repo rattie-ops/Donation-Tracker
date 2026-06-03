@@ -1561,7 +1561,6 @@ async function scanCertWithOCR(file) {
     const data = await response.json();
     if (data.error) throw new Error(data.error.message);
     const txt = data.responses?.[0]?.fullTextAnnotation?.text || '';
-    console.log('=== VISION TEXT ===\n' + txt);
     if (!txt) throw new Error('No se detectó texto en la imagen.');
 
     const parsed = parseCertText(txt);
@@ -1576,12 +1575,10 @@ async function scanCertWithOCR(file) {
 }
 
 function parseCertText(txt) {
-  // Normalize: collapse multiple spaces, remove stray characters
-  const t = txt.replace(/\r/g, '\n').replace(/[ \t]+/g, ' ');
-  const lines = t.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const lines = txt.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const full = lines.join('\n');
 
-  function find(patterns) {
+  function findLine(patterns) {
     for (const pat of patterns) {
       const m = full.match(pat);
       if (m && m[1] && m[1].trim()) return m[1].trim();
@@ -1589,102 +1586,105 @@ function parseCertText(txt) {
     return null;
   }
 
-  // ── Teuda number: "Teuda No. 090/10" or "No. 090/10"
-  const teuda = find([
-    /[Tt]euda\s+[Nn]o[.\s]+([A-Z0-9\/\-]+)/,
-    /[Nn][o°][.\s]+([0-9]+\/[0-9]+)/,
-    /תעודה\s+([0-9]+\/[0-9]+)/
-  ]);
-
-  // ── Dates: "Expedición: 05/05/2026"
   function parseDate(str) {
     if (!str) return null;
-    // DD/MM/YYYY
     const m = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
     return str;
   }
-  const expedicStr = find([/[Ee]xpedici[oó]n[:\s]+([0-9\/\-]+)/, /[Ee]xpedic[:\s]+([0-9\/]+)/]);
-  const expirStr   = find([/[Ee]xpiraci[oó]n[:\s]+([0-9\/\-]+)/, /[Ee]xpira[:\s]+([0-9\/]+)/]);
-  const fecha_expedicion = parseDate(expedicStr);
-  const fecha_expiracion = parseDate(expirStr);
 
-  // ── Name: "Nombre: COHEN TAWIL AVRAHAM"
-  const nombre_representante = find([
-    /[Nn]ombre[:\s]+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]+?)(?=\n|Pasaporte|מס)/,
+  // ── Fields that appear inline with their label ──
+  const teuda = findLine([
+    /[Tt]euda\s+[Nn]o[.\s]+([A-Z0-9\/\-]+)/,
+    /מס['']\s*תעודה\s+([0-9]+\/[0-9]+)/
+  ]);
+
+  const fecha_expedicion = parseDate(findLine([/[Ee]xpedici[oó]n[:\s]+([0-9\/]+)/]));
+  const fecha_expiracion = parseDate(findLine([/[Ee]xpiraci[oó]n[:\s]+([0-9\/]+)/]));
+
+  const nombre_representante = findLine([
+    /[Nn]ombre[:\s]+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]+?)(?:\s+[A-Z])?$/m,
     /[Nn]ombre[:\s]+([^\n]+)/
+  ])?.replace(/\s+[A-Z]$/, '').trim() || null;
+
+  const pasaporte = findLine([
+    /[Pp]asaporte[:\s]+([0-9A-Z]+)/,
+    /מס['']\s*דרכון\s+([0-9A-Z]+)/
   ]);
 
-  // ── Passport: "Pasaporte: 40405154"
-  const pasaporte = find([
-    /[Pp]asaporte[:\s]+([A-Z0-9]+)/,
-    /דרכון[:\s]+([A-Z0-9]+)/
+  // ── Fields where label and value are on separate lines ──
+  // Vision puts all left-column labels together, then right-column values together.
+  // Strategy: find the value by looking at lines AFTER each known label block.
+
+  function valueAfterLabel(labelPatterns) {
+    for (const pat of labelPatterns) {
+      const idx = lines.findIndex(l => pat.test(l));
+      if (idx >= 0) {
+        // Look for the next non-label, non-Hebrew line after this
+        for (let i = idx + 1; i < Math.min(idx + 6, lines.length); i++) {
+          const l = lines[i];
+          // Skip lines that are themselves labels (contain known Spanish label words)
+          if (/[Tt]el[eé]fono|[Nn]ombre|[Pp]a[ií]s|[Aa]lumnos|[Pp]resupuesto|[Ss]uma|[Vv]isita|[Pp]orcentaje|[Dd]etalle|מס|שם|עיר|מספר|תקציב|סכום|בפעם|גובה|פירוט/.test(l)) continue;
+          if (l.length > 1) return l;
+        }
+      }
+    }
+    return null;
+  }
+
+  // For this cert format, Vision groups values at the end of the left-column labels block.
+  // The values appear in this order after all labels: NEZER EFRAIM, phone inst, phone rabino, ciudad, alumnos, presupuesto, [suma gov blank], visita, porcentaje, detalle
+  // Find the block start by locating "NEZER EFRAIM" or whatever comes after the last label
+
+  const nombre_institucion = valueAfterLabel([
+    /[Nn]ombre\s+de\s+la\s+[Ii]nstituci[oó]n/,
+    /שם\s*המוסד/,
+    /המוסד\s*$/
+  ]) || findLine([/^([A-Z][A-Z\s]{3,})$(?!\n.*[Tt]el)/m]);
+
+  const telefono_institucion = valueAfterLabel([
+    /[Tt]el[eé]fono\s+de\s+la\s+[Ii]nstituci[oó]n/,
+    /מס['']\s*טלפון\s+של\s+המוסד/
+  ]) || findLine([/\b(0[0-9]{2}\s*[0-9]{3,4}\s*[0-9]{3,4})\b/]);
+
+  const telefono_rabino_panama = valueAfterLabel([
+    /[Tt]el[eé]fono\s+del\s+[Rr]abino/,
+    /מס['']\s*טלפון\s+של\s+הרב/
+  ]) || findLine([/\b(0[0-9]{3}-[0-9]{4,5})\b/]);
+
+  const pais_ciudad = valueAfterLabel([
+    /[Pp]a[ií]s\s*\/\s*[Cc]iudad/,
+    /עיר\s*\/\s*מדינה/
   ]);
 
-  // ── Institution name — value on same line or next line after label
-  const nombre_institucion = find([
-    /[Nn]ombre\s+de\s+la\s+[Ii]nstituci[oó]n[^|\n]*[|\t]+\s*([^\n]+)/,
-    /המוסד[^\n]*\n([A-Z][A-Z\s]+)/,
-    /[Ii]nstituci[oó]n\b[^\n]*\n([A-Z][A-Z\s]+)/
+  const num_alumnos = valueAfterLabel([
+    /[Nn]o\.\s+de\s+alumnos/,
+    /מספר\s+תלמידים/
   ]);
 
-  // ── Phones
-  const telefono_institucion = find([
-    /[Tt]el[eé]fono\s+de\s+la\s+[Ii]nstituci[oó]n[^|\n]*[|\t]+\s*([0-9\s\-+]+)/,
-    /[Tt]el[eé]fono\s+de\s+la\s+[Ii]nstituci[oó]n[^\n]*\n([0-9\s\-+]+)/,
-    /המוסד\s*\n([0-9\s\-+]{6,})/
-  ]);
-  const telefono_rabino_panama = find([
-    /[Tt]el[eé]fono\s+del\s+[Rr]abino[^|\n]*[|\t]+\s*([0-9\s\-+]+)/,
-    /[Rr]abino\s+en\s+Panam[aá][^\n]*\n([0-9\s\-+]+)/,
-    /בפנמה[^\n]*\n([0-9\s\-+]{6,})/
-  ]);
-
-  // ── País/Ciudad
-  const pais_ciudad = find([
-    /[Pp]a[ií]s\s*\/\s*[Cc]iudad[^|\n]*[|\t]+\s*([^\n]+)/,
-    /עיר[^\n]*\n([A-Za-z][^\n]+)/
-  ]);
-
-  // ── Alumnos
-  const num_alumnos = find([
-    /[Nn]o\.\s+de\s+alumnos[^|\n]*[|\t]+\s*([^\n]+)/,
-    /alumnos[^\n]*\n([^\n]+)/,
-    /תלמידים[^\n]*\n([^\n]+)/
-  ]);
-
-  // ── Presupuesto anual
-  const presupuestoStr = find([
-    /[Pp]resupuesto\s+anual[^|\n]*[|\t]+\s*([0-9,. ]+)/,
-    /[Pp]resupuesto\s+anual[^\n]*\n([0-9,. ]+)/,
-    /תקציב[^\n]*\n([0-9,. ]+)/
+  const presupuestoStr = valueAfterLabel([
+    /[Pp]resupuesto\s+anual/,
+    /תקציב\s+שנתי/
   ]);
   const presupuesto_anual = presupuestoStr ? parseFloat(presupuestoStr.replace(/[,\s]/g,'')) || null : null;
 
-  // ── Suma gobierno
-  const sumaStr = find([
-    /[Ss]uma\s+recibida\s+por\s+el\s+gobierno[^|\n]*[|\t]+\s*([0-9,. ]+)/,
-    /[Ss]uma\s+recibida[^\n]*\n([0-9,. ]+)/,
-    /הממשלה[^\n]*\n([0-9,. ]+)/
+  const sumaStr = valueAfterLabel([
+    /[Ss]uma\s+recibida\s+por\s+el\s+gobierno/,
+    /סכום\s+התקציב/
   ]);
   const suma_gobierno = sumaStr ? parseFloat(sumaStr.replace(/[,\s]/g,'')) || null : null;
 
-  // ── Última visita
-  const ultima_visita = find([
-    /[ÚU]ltima\s+visita[^|\n]*[|\t]+\s*([^\n]+)/,
-    /[ÚU]ltima\s+visita[^\n]*\n([^\n]+)/,
-    /האחרונה[^\n]*\n([^\n]+)/
+  const ultima_visita = valueAfterLabel([
+    /[ÚU]ltima\s+visita/,
+    /בפעם\s+האחרונה/
   ]);
 
-  // ── Porcentaje
-  const porcentaje_recibe = find([
-    /[Pp]orcentaje\s+que\s+recibe[^|\n]*[|\t]+\s*([^\n]+)/,
-    /[Pp]orcentaje[^\n]*\n([^\n]+)/,
-    /שמקבל[^\n]*\n([^\n]+)/
+  const porcentaje_recibe = valueAfterLabel([
+    /[Pp]orcentaje\s+que\s+recibe/,
+    /גובה\s+עמלה/
   ]);
 
-  // ── Detalle actividad — everything after "Detalle de la actividad"
-  const detMatch = full.match(/[Dd]etalle\s+de\s+la\s+actividad[^:\n]*:?\s*([^\n]+(?:\n(?!NO ACEPTAR|Autorizado)[^\n]+)*)/);
+  const detMatch = full.match(/[Dd]etalle\s+de\s+la\s+actividad[^:\n]*:?\s*\n([^\n]+(?:\n(?!NO ACEPTAR|Autorizado|DAVID|RABINO)[^\n]+)*)/);
   const detalle_actividad = detMatch ? detMatch[1].trim().replace(/\n/g,' ') : null;
 
   return {
@@ -1694,8 +1694,8 @@ function parseCertText(txt) {
     nombre_representante,
     pasaporte,
     nombre_institucion,
-    telefono_institucion: telefono_institucion ? telefono_institucion.trim() : null,
-    telefono_rabino_panama: telefono_rabino_panama ? telefono_rabino_panama.trim() : null,
+    telefono_institucion: telefono_institucion?.trim() || null,
+    telefono_rabino_panama: telefono_rabino_panama?.trim() || null,
     pais_ciudad,
     num_alumnos,
     presupuesto_anual,
