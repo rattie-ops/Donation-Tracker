@@ -1580,6 +1580,7 @@ function parseCertText(txt) {
     .map(l => l.trim())
     .filter(l => l.length > 0)
     .filter(l => !/[\u0590-\u05FF]/.test(l));
+  console.log('=== FILTERED LINES ===\n' + lines.join('\n'));
   const full = lines.join('\n');
 
   function findLine(patterns) {
