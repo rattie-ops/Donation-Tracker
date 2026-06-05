@@ -1561,6 +1561,7 @@ async function scanCertWithOCR(file) {
     const data = await response.json();
     if (data.error) throw new Error(data.error.message);
     const txt = data.responses?.[0]?.fullTextAnnotation?.text || '';
+    console.log('=== RAW TEXT ===\n' + txt);
     if (!txt) throw new Error('No se detectó texto en la imagen.');
 
     const parsed = parseCertText(txt);
