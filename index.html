@@ -1561,9 +1561,6 @@ async function scanCertWithOCR(file) {
     const data = await response.json();
     if (data.error) throw new Error(data.error.message);
     const txt = data.responses?.[0]?.fullTextAnnotation?.text || '';
-    console.log('=== RAW ===\n' + txt);
-const filtered = txt.split('\n').map(l=>l.trim()).filter(l=>l.length>0).filter(l=>!/[\u0590-\u05FF]/.test(l));
-console.log('=== FILTERED ===\n' + filtered.join('\n'));
     if (!txt) throw new Error('No se detectó texto en la imagen.');
 
     const parsed = parseCertText(txt);
@@ -1578,12 +1575,12 @@ console.log('=== FILTERED ===\n' + filtered.join('\n'));
 }
 
 function parseCertText(txt) {
-  // Keep all lines but tag Hebrew ones so we can skip them for label searches
-  const allLines = txt.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-
-  // Clean lines = no Hebrew
-  const lines = allLines.filter(l => !/[\u0590-\u05FF]/.test(l));
-  const full  = lines.join('\n');
+  // Work with filtered lines (no Hebrew) for everything
+  const lines = txt.split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0)
+    .filter(l => !/[\u0590-\u05FF]/.test(l));
+  const full = lines.join('\n');
 
   function parseDate(str) {
     if (!str) return null;
@@ -1592,106 +1589,100 @@ function parseCertText(txt) {
     return str;
   }
 
-  function findInline(patterns) {
-    for (const pat of patterns) {
-      const m = full.match(pat);
-      if (m && m[1]?.trim()) return m[1].trim();
-    }
-    return null;
+  function findInline(pat) {
+    const m = full.match(pat);
+    return m?.[1]?.trim() || null;
   }
 
-  // Is this line a label (not a value)?
+  // ── Inline fields (always on same line as label) ──
+  const teuda               = findInline(/[Tt]euda\s+[Nn]o[.\s]+([A-Z0-9\/\-]+)/);
+  const fecha_expedicion    = parseDate(findInline(/[Ee]xpedici[oó]n[:\s]+([0-9\/]+)/));
+  const fecha_expiracion    = parseDate(findInline(/[Ee]xpiraci[oó]n[:\s]+([0-9\/]+)/));
+  const pasaporte           = findInline(/[Pp]asaporte[:\s]+([0-9A-Z]+)/);
+  const nombre_representante = findInline(/[Nn]ombre[:\s]+([A-Z][A-Z\s]+?)(?:\s+[A-Z])?$/)
+    ?.replace(/\s+[A-Z]$/, '').trim() || null;
+
+  // ── Label indexes ──
+  const LABELS = [
+    'Nombre de la Institución', 'Teléfono de la Institución',
+    'Teléfono del Rabino', 'País/Ciudad', 'No. de alumnos',
+    'Presupuesto anual', 'Suma recibida', 'Ultima visita', 'Última visita',
+    'Porcentaje que recibe', 'Detalle de la actividad'
+  ];
   function isLabel(l) {
-    return /[Tt]el[eé]fono|[Nn]ombre\s+de\s+la|[Pp]a[ií]s\s*\/|[Aa]lumnos|[Pp]resupuesto|[Ss]uma\s+recibida|[ÚUuú]ltima\s+visita|[Pp]orcentaje|[Dd]etalle/.test(l);
+    return LABELS.some(lb => l.includes(lb)) ||
+      /^(VAAD|Shevet|Tel\.|E-mail|CERTIFICADO|Por este|documentos|NO ACEPTAR|Autorizado|DAVID|RABINO|PERETS|PANAMA|SHEVET|CAP$|CAS$|Expedici|Expiraci|Nombre:|Pasaporte)/.test(l);
   }
 
-  // Find first non-label, non-empty value line after a given line index
-  function nextValue(fromIdx, stopPatterns = []) {
-    for (let i = fromIdx + 1; i < Math.min(fromIdx + 8, lines.length); i++) {
+  // ── Find where the value block starts ──
+  // Values = lines that are NOT labels and appear after the label cluster
+  // Strategy: find last label line index, then collect values after it
+  let lastLabelIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (isLabel(lines[i])) lastLabelIdx = i;
+  }
+
+  // Also check if institution name appears BEFORE label block (cert 2 pattern)
+  // It's an ALL-CAPS line that appears before the first table label
+  const firstTableLabelIdx = lines.findIndex(l => l.includes('Nombre de la Institución'));
+  let nombre_institucion_pre = null;
+  if (firstTableLabelIdx > 0) {
+    for (let i = firstTableLabelIdx - 1; i >= 0; i--) {
       const l = lines[i];
-      if (isLabel(l)) continue;
-      if (stopPatterns.some(p => p.test(l))) break;
-      if (l.length > 1) return { val: l, idx: i };
-    }
-    return null;
-  }
-
-  // ── Inline fields ──
-  const teuda = findInline([/[Tt]euda\s+[Nn]o[.\s]+([A-Z0-9\/\-]+)/]);
-  const fecha_expedicion = parseDate(findInline([/[Ee]xpedici[oó]n[:\s]+([0-9\/]+)/]));
-  const fecha_expiracion = parseDate(findInline([/[Ee]xpiraci[oó]n[:\s]+([0-9\/]+)/]));
-  const nombre_representante = findInline([/[Nn]ombre[:\s]+([A-ZÁÉÍÓÚÑA-Z][A-ZÁÉÍÓÚÑA-Z\s]+?)(?:\s+[A-Z])?$/m])?.replace(/\s+[A-Z]$/, '').trim() || null;
-  const pasaporte = findInline([/[Pp]asaporte[:\s]+([0-9A-Z]+)/]);
-
-  // ── nombre_institucion: may appear BEFORE or AFTER the label block ──
-  // Strategy: find the label, then check the line BEFORE it first (Vision sometimes puts value before label)
-  // and also check lines after it
-  let nombre_institucion = null;
-  const idxNombreInst = lines.findIndex(l => /[Nn]ombre\s+de\s+la\s+[Ii]nstituci[oó]n/.test(l));
-  if (idxNombreInst >= 0) {
-    // Check line immediately before the label
-    const before = lines[idxNombreInst - 1];
-    if (before && !isLabel(before) && /^[A-Z]/.test(before) && before.length > 2 && !/CERTIFICADO|VAAD|Shevet|Por este/.test(before)) {
-      nombre_institucion = before;
-    } else {
-      const nv = nextValue(idxNombreInst);
-      if (nv) nombre_institucion = nv.val;
-    }
-  }
-
-  // ── Table values — find each label then get next value ──
-  const idxTelInst    = lines.findIndex(l => /[Tt]el[eé]fono\s+de\s+la\s+[Ii]nstituci[oó]n/.test(l));
-  const idxTelRabino  = lines.findIndex(l => /[Tt]el[eé]fono\s+del\s+[Rr]abino/.test(l));
-  const idxPais       = lines.findIndex(l => /[Pp]a[ií]s\s*\/\s*[Cc]iudad/.test(l));
-  const idxAlumnos    = lines.findIndex(l => /[Nn]o\.\s+de\s+alumnos/.test(l));
-  const idxPresup     = lines.findIndex(l => /[Pp]resupuesto\s+anual/.test(l));
-  const idxSuma       = lines.findIndex(l => /[Ss]uma\s+recibida/.test(l));
-  const idxVisita     = lines.findIndex(l => /[ÚUuú]ltima\s+visita/.test(l));
-  const idxPorcent    = lines.findIndex(l => /[Pp]orcentaje\s+que\s+recibe/.test(l));
-  const idxDetalle    = lines.findIndex(l => /[Dd]etalle\s+de\s+la\s+actividad/.test(l));
-
-  const telefono_institucion   = idxTelInst   >= 0 ? nextValue(idxTelInst)?.val   || null : null;
-  const telefono_rabino_panama = idxTelRabino >= 0 ? nextValue(idxTelRabino)?.val  || null : null;
-  const pais_ciudad            = idxPais      >= 0 ? nextValue(idxPais)?.val       || null : null;
-
-  // num_alumnos may span 2 lines
-  let num_alumnos = null;
-  if (idxAlumnos >= 0) {
-    const nv = nextValue(idxAlumnos);
-    if (nv) {
-      num_alumnos = nv.val;
-      const next = lines[nv.idx + 1];
-      if (next && !isLabel(next) && !/^[0-9]/.test(next) && next.length < 25) {
-        num_alumnos += ' ' + next;
+      if (/^[A-Z][A-Z\s]{2,}$/.test(l) && !/VAAD|CERTIFICADO|Shevet/.test(l)) {
+        nombre_institucion_pre = l;
+        break;
       }
     }
   }
 
-  const presupuestoStr = idxPresup >= 0 ? nextValue(idxPresup)?.val : null;
+  // Collect value lines after last label
+  const FOOTER = /NO ACEPTAR|Autorizado|DAVID|RABINO|PERETS|PANAMA|SHEVET|^CAP$|^CAS$|^P$|SHEVETAHIM/;
+  const valueLines = [];
+  for (let i = lastLabelIdx + 1; i < lines.length; i++) {
+    if (FOOTER.test(lines[i])) break;
+    if (lines[i].length > 1) valueLines.push(lines[i]);
+  }
+
+  // ── Map values to fields by position ──
+  // Both certs follow this order in valueLines:
+  // [0] nombre_institucion (if not pre), [1] tel_inst, [2] tel_rabino,
+  // [3] pais_ciudad, [4] num_alumnos (may be 2 lines), presupuesto, [visita], [porcentaje], [detalle]
+
+  let vi = 0; // value index cursor
+
+  // nombre_institucion: use pre-label value if found, else first value line
+  const nombre_institucion = nombre_institucion_pre || (valueLines[vi++] || null);
+  if (nombre_institucion_pre) {
+    // values start from 0 still since nombre was before labels
+  }
+
+  const telefono_institucion   = valueLines[vi++] || null;
+  const telefono_rabino_panama = valueLines[vi++] || null;
+  const pais_ciudad            = valueLines[vi++] || null;
+
+  // num_alumnos — may span 2 lines if second line is non-numeric short text
+  let num_alumnos = valueLines[vi++] || null;
+  if (num_alumnos && valueLines[vi] && !/^[0-9]/.test(valueLines[vi]) && valueLines[vi].length < 20) {
+    num_alumnos += ' ' + valueLines[vi++];
+  }
+
+  const presupuestoStr    = valueLines[vi++] || null;
   const presupuesto_anual = presupuestoStr ? parseFloat(presupuestoStr.replace(/[,\s]/g,'')) || null : null;
 
-  // Suma gobierno: value between Suma label and Visita label (often empty)
+  // Suma gobierno: only if line is numeric (often empty in these certs)
   let suma_gobierno = null;
-  if (idxSuma >= 0) {
-    const nv = nextValue(idxSuma, [/[ÚUuú]ltima\s+visita/]);
-    if (nv && /^[0-9]/.test(nv.val)) {
-      suma_gobierno = parseFloat(nv.val.replace(/[,\s]/g,'')) || null;
-    }
+  const sumaCandidate = valueLines[vi];
+  if (sumaCandidate && /^[0-9]/.test(sumaCandidate)) {
+    suma_gobierno = parseFloat(sumaCandidate.replace(/[,\s]/g,'')) || null;
+    vi++;
   }
 
-  const ultima_visita   = idxVisita  >= 0 ? nextValue(idxVisita,  [/[Pp]orcentaje/])?.val  || null : null;
-  const porcentaje_recibe = idxPorcent >= 0 ? nextValue(idxPorcent, [/[Dd]etalle/])?.val || null : null;
+  const ultima_visita     = valueLines[vi++] || null;
+  const porcentaje_recibe = valueLines[vi++] || null;
 
-  // Detalle: everything after label until footer
-  let detalle_actividad = null;
-  if (idxDetalle >= 0) {
-    const detLines = [];
-    for (let i = idxDetalle + 1; i < lines.length; i++) {
-      if (/NO ACEPTAR|Autorizado|DAVID|RABINO|PANAMA|SHEVET|CAP$/.test(lines[i])) break;
-      if (!isLabel(lines[i])) detLines.push(lines[i]);
-    }
-    detalle_actividad = detLines.join(' ').trim() || null;
-  }
+  // Detalle: remaining lines until footer
+  const detalle_actividad = valueLines.slice(vi).join(' ').trim() || null;
 
   return {
     teuda_numero: teuda,
