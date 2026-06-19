@@ -1475,6 +1475,7 @@ function toggleForm(type) {
   if (open) {
     if (type === 'don') { document.getElementById('nd-fecha').value = today(); refreshSelects(); renderMetaInfo(); }
     if (type === 'pend') { document.getElementById('np-fecha').value = today(); refreshSelects(); }
+    if (type === 'entidad' && !_editEntidadId) { _pendingFotoCarnetUrl = null; }
     // Scroll form into view
     form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -1573,11 +1574,87 @@ async function scanCertWithAI(imgType) {
     fillEntidadForm(parsed);
     const found = Object.values(parsed).filter(v => v !== null && v !== '').length;
     showOk('ok-entidad', `✓ ${found} campos detectados. Revisa y confirma.`);
+
+    // Crop the carnet photo using the bounding box and upload to Storage
+    if (parsed.foto_bbox) {
+      try {
+        const url = await cropAndUploadFoto(parsed.foto_bbox);
+        if (url) _pendingFotoCarnetUrl = url;
+      } catch(cropErr) {
+        console.warn('No se pudo recortar/subir la foto del carnet:', cropErr);
+      }
+    }
   } catch(e) {
     console.error('AI scan error:', e);
     showErr('err-entidad', 'No se pudo leer automáticamente: ' + e.message);
   }
   document.getElementById('ai-loading').style.display = 'none';
+}
+
+let _pendingFotoCarnetUrl = null;
+
+// Crops the headshot region from the (already compressed) cert image using a fractional
+// bounding box {x,y,width,height}, re-compresses it small, and uploads to Supabase Storage.
+function cropAndUploadFoto(bbox) {
+  return new Promise((resolve, reject) => {
+    const img = document.getElementById('photo-img');
+    if (!img || !img.src) return resolve(null);
+    const srcImg = new Image();
+    srcImg.crossOrigin = 'anonymous';
+    srcImg.onload = async () => {
+      try {
+        const sx = Math.round(bbox.x * srcImg.width);
+        const sy = Math.round(bbox.y * srcImg.height);
+        const sw = Math.round(bbox.width * srcImg.width);
+        const sh = Math.round(bbox.height * srcImg.height);
+        if (sw <= 0 || sh <= 0) return resolve(null);
+
+        // Target a small thumbnail — max 300px on the longer side
+        const maxDim = 300;
+        let outW = sw, outH = sh;
+        if (outW > maxDim || outH > maxDim) {
+          if (outW > outH) { outH = Math.round(outH * maxDim / outW); outW = maxDim; }
+          else { outW = Math.round(outW * maxDim / outH); outH = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = outW; canvas.height = outH;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(srcImg, sx, sy, sw, sh, 0, 0, outW, outH);
+
+        // Compress aggressively — aim for a few KB
+        let quality = 0.7;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        while (dataUrl.length * 0.75 > 60 * 1024 && quality > 0.3) {
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+
+        const base64 = dataUrl.split(',')[1];
+        const fileName = `carnet_${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`;
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+        const uploadRes = await fetch(`${SB_URL}/storage/v1/object/entidad-fotos/${fileName}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'image/jpeg',
+            'apikey': SB_KEY,
+            'Authorization': 'Bearer ' + (_session?.access_token || SB_KEY)
+          },
+          body: bytes
+        });
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          throw new Error(errText);
+        }
+        const publicUrl = `${SB_URL}/storage/v1/object/public/entidad-fotos/${fileName}`;
+        resolve(publicUrl);
+      } catch(e) { reject(e); }
+    };
+    srcImg.onerror = () => resolve(null);
+    srcImg.src = img.src;
+  });
 }
 
 function fillEntidadForm(data) {
@@ -1618,7 +1695,9 @@ async function saveEntidad() {
     porcentaje_recibe: document.getElementById('ent-porcentaje').value.trim(),
     detalle_actividad: document.getElementById('ent-detalle').value.trim(),
     notas: document.getElementById('ent-notas').value.trim(),
+    foto_carnet_url: _pendingFotoCarnetUrl || undefined,
   };
+  if (data.foto_carnet_url === undefined) delete data.foto_carnet_url;
   try {
     if (_editEntidadId) {
       await fetch(`${SB_URL}/rest/v1/entidades?id=eq.${_editEntidadId}`, {method:'PATCH', headers:getH(), body:JSON.stringify(data)});
