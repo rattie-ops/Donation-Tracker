@@ -528,6 +528,19 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
         </div>
         <!-- Fields -->
         <div class="fg" style="margin-top:1rem;">
+          <div class="fgi ff" style="flex-direction:row;align-items:center;gap:14px;">
+            <div id="foto-carnet-preview-wrap" style="flex-shrink:0;">
+              <img id="foto-carnet-preview" src="" alt="" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:1px solid var(--bt);display:none;">
+              <div id="foto-carnet-placeholder" style="width:56px;height:56px;border-radius:50%;background:var(--bg2);border:1px solid var(--bt);display:flex;align-items:center;justify-content:center;color:var(--t3);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:12px;color:var(--t2);font-weight:600;letter-spacing:.02em;text-transform:uppercase;display:block;margin-bottom:6px;">Foto carnet</label>
+              <input type="file" id="foto-carnet-input" accept="image/*" style="display:none;" onchange="handleFotoCarnetManual(this)">
+              <button type="button" class="ba" onclick="document.getElementById('foto-carnet-input').click()">Subir / cambiar foto</button>
+            </div>
+          </div>
           <div class="fgi"><label>Teuda No.</label><input type="text" id="ent-teuda"></div>
           <div class="fgi"><label>Nombre institución</label><input type="text" id="ent-nombre-inst"></div>
           <div class="fgi"><label>Nombre representante</label><input type="text" id="ent-nombre-rep"></div>
@@ -1475,7 +1488,7 @@ function toggleForm(type) {
   if (open) {
     if (type === 'don') { document.getElementById('nd-fecha').value = today(); refreshSelects(); renderMetaInfo(); }
     if (type === 'pend') { document.getElementById('np-fecha').value = today(); refreshSelects(); }
-    if (type === 'entidad' && !_editEntidadId) { _pendingFotoCarnetUrl = null; }
+    if (type === 'entidad' && !_editEntidadId) { _pendingFotoCarnetUrl = null; setFotoCarnetPreview(null); }
     // Scroll form into view
     form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -1582,7 +1595,7 @@ async function scanCertWithAI(imgType) {
     if (parsed.foto_bbox) {
       try {
         const url = await cropAndUploadFoto(parsed.foto_bbox);
-        if (url) _pendingFotoCarnetUrl = url;
+        if (url) { _pendingFotoCarnetUrl = url; setFotoCarnetPreview(url); }
       } catch(cropErr) {
         console.warn('No se pudo recortar/subir la foto del carnet:', cropErr);
       }
@@ -1658,6 +1671,83 @@ function cropAndUploadFoto(bbox) {
     srcImg.onerror = () => resolve(null);
     srcImg.src = img.src;
   });
+}
+
+// Uploads a Blob/File of an image to Storage, compressing it down to a small thumbnail first.
+function compressAndUploadFoto(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = async () => {
+        try {
+          const maxDim = 300;
+          let outW = img.width, outH = img.height;
+          if (outW > maxDim || outH > maxDim) {
+            if (outW > outH) { outH = Math.round(outH * maxDim / outW); outW = maxDim; }
+            else { outW = Math.round(outW * maxDim / outH); outH = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = outW; canvas.height = outH;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, outW, outH);
+
+          let quality = 0.8;
+          let dataUrl = canvas.toDataURL('image/jpeg', quality);
+          while (dataUrl.length * 0.75 > 60 * 1024 && quality > 0.3) {
+            quality -= 0.1;
+            dataUrl = canvas.toDataURL('image/jpeg', quality);
+          }
+
+          const base64 = dataUrl.split(',')[1];
+          const fileName = `carnet_${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`;
+          const binary = atob(base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+          const uploadRes = await fetch(`${SB_URL}/storage/v1/object/entidad-fotos/${fileName}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'image/jpeg',
+              'apikey': SB_KEY,
+              'Authorization': 'Bearer ' + (_session?.access_token || SB_KEY)
+            },
+            body: bytes
+          });
+          if (!uploadRes.ok) { const errText = await uploadRes.text(); throw new Error(errText); }
+          resolve({ url: `${SB_URL}/storage/v1/object/public/entidad-fotos/${fileName}`, dataUrl });
+        } catch(e) { reject(e); }
+      };
+      img.onerror = () => reject(new Error('No se pudo leer la imagen'));
+      img.src = ev.target.result;
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function setFotoCarnetPreview(url) {
+  const img = document.getElementById('foto-carnet-preview');
+  const ph = document.getElementById('foto-carnet-placeholder');
+  if (url) {
+    img.src = url; img.style.display = 'block'; ph.style.display = 'none';
+  } else {
+    img.src = ''; img.style.display = 'none'; ph.style.display = 'flex';
+  }
+}
+
+async function handleFotoCarnetManual(input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    showOk('ok-entidad', 'Subiendo foto...');
+    const { url } = await compressAndUploadFoto(file);
+    _pendingFotoCarnetUrl = url;
+    setFotoCarnetPreview(url);
+    showOk('ok-entidad', '✓ Foto cargada. Guarda la entidad para confirmar.');
+  } catch(e) {
+    showErr('err-entidad', 'No se pudo subir la foto: ' + e.message);
+  }
 }
 
 function fillEntidadForm(data) {
@@ -1739,6 +1829,8 @@ function editEntidad(id) {
     detalle_actividad: e.detalle_actividad,
   });
   document.getElementById('ent-notas').value = e.notas || '';
+  _pendingFotoCarnetUrl = e.foto_carnet_url || null;
+  setFotoCarnetPreview(e.foto_carnet_url || null);
 }
 
 // ── Excel Import ──
