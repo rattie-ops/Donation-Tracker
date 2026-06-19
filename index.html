@@ -554,7 +554,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
       <div class="card" style="padding:0;">
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>Institución</th><th>Representante</th><th>País/Ciudad</th><th>Teuda</th><th>Expiración</th><th>Alumnos</th><th style="width:68px;"></th></tr></thead>
+            <thead><tr><th style="width:44px;"></th><th>Institución</th><th>Representante</th><th>País/Ciudad</th><th>Teuda</th><th>Expiración</th><th>Alumnos</th><th style="width:68px;"></th></tr></thead>
             <tbody id="entidades-body"></tbody>
           </table>
         </div>
@@ -1497,11 +1497,14 @@ async function renderEntidades() {
   const body = document.getElementById('entidades-body');
   const empty = document.getElementById('entidades-empty');
   if (!body) return;
-  body.innerHTML = '<tr><td colspan="7"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>';
+  body.innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>';
   await loadEntidades();
   if (!entidades.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
   body.innerHTML = entidades.map(e => `<tr>
+    <td>${e.foto_carnet_url
+      ? `<img src="${e.foto_carnet_url}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--bt);display:block;">`
+      : `<div style="width:32px;height:32px;border-radius:50%;background:var(--bg2);border:1px solid var(--bt);display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:11px;font-weight:600;">${(e.nombre_institucion||'?').charAt(0).toUpperCase()}</div>`}</td>
     <td style="font-weight:500;">${e.nombre_institucion||'—'}</td>
     <td>${e.nombre_representante||'—'}</td>
     <td style="color:var(--t2);">${e.pais_ciudad||'—'}</td>
