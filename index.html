@@ -574,7 +574,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
       <div class="card" style="padding:0;">
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th style="width:44px;"></th><th>Institución</th><th>Representante</th><th>País/Ciudad</th><th>Teuda</th><th>Expiración</th><th>Alumnos</th><th style="width:68px;"></th></tr></thead>
+            <thead><tr><th style="width:44px;"></th><th>Institución</th><th>Representante</th><th>País/Ciudad</th><th>Teuda</th><th style="text-align:right;">Presupuesto</th><th>Alumnos</th><th style="width:68px;"></th></tr></thead>
             <tbody id="entidades-body"></tbody>
           </table>
         </div>
@@ -827,6 +827,7 @@ function goToEntidad(entidad_id) {
 // ── Helpers ──
 function today() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function fmt(n) { return '$'+Number(n||0).toLocaleString('en-US'); }
+function fmtNum(n) { return Number(n||0).toLocaleString('en-US'); }
 function fmtD(d) { if(!d)return'—'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0].slice(2)}`; }
 function daysUntil(s) { if(!s)return null; const t=new Date(); t.setHours(0,0,0,0); const u=new Date(s); u.setHours(0,0,0,0); return Math.round((u-t)/86400000); }
 function topts(sel) { return `<option value="">Sin categoría</option>`+tipos.map(t=>`<option value="${t}"${sel===t?' selected':''}>${t}</option>`).join(''); }
@@ -1539,7 +1540,7 @@ async function renderEntidades() {
     <td>${e.nombre_representante||'—'}</td>
     <td style="color:var(--t2);">${e.pais_ciudad||'—'}</td>
     <td style="color:var(--t2);">${e.teuda_numero||'—'}</td>
-    <td style="color:var(--t2);white-space:nowrap;">${e.fecha_expiracion?fmtD(e.fecha_expiracion):'—'}</td>
+    <td style="color:var(--t2);text-align:right;" class="amount">${e.presupuesto_anual?fmtNum(e.presupuesto_anual):'—'}</td>
     <td style="color:var(--t2);">${e.num_alumnos||'—'}</td>
     <td><div style="display:flex;gap:4px;">
       ${ib('edit',`editEntidad('${e.id}')`, 'edit')}
