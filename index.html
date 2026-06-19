@@ -426,6 +426,13 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
           <div class="fgi"><label>País</label><select id="nd-pais"></select></div>
           <div class="fgi"><label>Monto (USD)</label><input type="number" id="nd-monto" placeholder="0" min="0"></div>
           <div class="fgi"><label>Meta</label><div id="nd-meta-info" style="padding:10px 12px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg2);font-size:13px;color:var(--t2);">Cargando...</div></div>
+          <div class="fgi">
+            <label>Entidad</label>
+            <input type="text" id="nd-entidad-search" placeholder="Buscar entidad..." oninput="filterNdEntidad()" style="font-size:14px;border-radius:var(--rm);border:1px solid var(--bt);padding:10px 12px;background:var(--bg1);color:var(--t1);box-shadow:var(--shadow-sm);margin-bottom:6px;">
+            <select id="nd-entidad" style="font-size:14px;border-radius:var(--rm);border:1px solid var(--bt);padding:10px 12px;background:var(--bg1);color:var(--t1);box-shadow:var(--shadow-sm);">
+              <option value="">— Sin entidad —</option>
+            </select>
+          </div>
           <div class="fgi ff"><label>Notas</label><textarea id="nd-notas" placeholder="Comentarios adicionales..."></textarea></div>
         </div>
         <div style="margin-top:1.25rem;display:flex;gap:8px;">
@@ -1118,23 +1125,31 @@ async function delDon(id){
 }
 
 let _linkDonId = null;
-function buildLinkOptions(filter='', currentId=null) {
+function buildEntidadOptions(selectId, filter='', currentId=null) {
   const q = filter.toLowerCase();
   const filtered = entidades.filter(e => {
     const name = (e.nombre_institucion||e.nombre_representante||'').toLowerCase();
     return !q || name.includes(q);
   });
-  const sel = document.getElementById('link-entidad-select');
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
   sel.innerHTML = '<option value="">— Sin entidad —</option>' +
     filtered.map(e => {
       const name = e.nombre_institucion || e.nombre_representante || e.id;
       return `<option value="${e.id}"${currentId===e.id?' selected':''}>${name}</option>`;
     }).join('');
 }
+function buildLinkOptions(filter='', currentId=null) { buildEntidadOptions('link-entidad-select', filter, currentId); }
 function filterLinkEntidades() {
   const q = document.getElementById('link-entidad-search').value;
   const don = donaciones.find(d=>d.id===_linkDonId);
   buildLinkOptions(q, don?.entidad_id||null);
+}
+function filterNdEntidad() {
+  const q = document.getElementById('nd-entidad-search').value;
+  const sel = document.getElementById('nd-entidad');
+  const current = sel?.value || null;
+  buildEntidadOptions('nd-entidad', q, current);
 }
 function openLinkEntidad(donId) {
   _linkDonId = donId;
@@ -1374,12 +1389,13 @@ async function addDonacion(){
   const btn=document.getElementById('btn-don');
   btn.disabled=true; btn.textContent='Guardando...';
   try {
-    const data={fecha,tipo:document.getElementById('nd-tipo').value,inst:document.getElementById('nd-inst').value.trim(),recv:document.getElementById('nd-recv').value.trim(),pais:document.getElementById('nd-pais').value,monto,notas:document.getElementById('nd-notas').value.trim(),user_id:currentUser.id,meta_id:metaActiva?.id||null};
+    const data={fecha,tipo:document.getElementById('nd-tipo').value,inst:document.getElementById('nd-inst').value.trim(),recv:document.getElementById('nd-recv').value.trim(),pais:document.getElementById('nd-pais').value,monto,notas:document.getElementById('nd-notas').value.trim(),user_id:currentUser.id,meta_id:metaActiva?.id||null,entidad_id:document.getElementById('nd-entidad').value||null};
     const res=await sb('donaciones','POST',data);
     if(res&&res[0]) donaciones.unshift(res[0]);
     ['nd-inst','nd-recv','nd-monto','nd-notas'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('nd-tipo').value=''; document.getElementById('nd-pais').value='';
     document.getElementById('nd-fecha').value=today();
+    document.getElementById('nd-entidad-search').value=''; buildEntidadOptions('nd-entidad');
     showOk('ok-don','Donación registrada correctamente.');
     renderMetrics(); renderDonaciones();
     setTimeout(()=>toggleForm('don'), 1500);
@@ -1486,7 +1502,7 @@ function toggleForm(type) {
   const open = form.style.display === 'none' || form.style.display === '';
   form.style.display = open ? 'block' : 'none';
   if (open) {
-    if (type === 'don') { document.getElementById('nd-fecha').value = today(); refreshSelects(); renderMetaInfo(); }
+    if (type === 'don') { document.getElementById('nd-fecha').value = today(); refreshSelects(); renderMetaInfo(); document.getElementById('nd-entidad-search').value=''; buildEntidadOptions('nd-entidad'); }
     if (type === 'pend') { document.getElementById('np-fecha').value = today(); refreshSelects(); }
     if (type === 'entidad' && !_editEntidadId) { _pendingFotoCarnetUrl = null; setFotoCarnetPreview(null); }
     // Scroll form into view
