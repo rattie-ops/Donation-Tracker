@@ -872,6 +872,7 @@ function tipoBadge(tipo) {
   return `<span class="badge" style="background:${c.bg};color:${c.color};border:1px solid ${c.border};text-transform:capitalize;">${tipo}</span>`;
 }
 function popts(sel) { return `<option value="">—</option>`+paises.map(p=>`<option value="${p}"${sel===p?' selected':''}>${p}</option>`).join(''); }
+function edEntidadOpts(sel) { return `<option value="">— Sin entidad —</option>`+entidades.map(e=>{const name=e.nombre_institucion||e.nombre_representante||e.id;return `<option value="${e.id}"${sel===e.id?' selected':''}>${name}</option>`;}).join(''); }
 function dueBadge(due) {
   const d=daysUntil(due);
   if(d===null) return '<span style="color:var(--t3)">Sin fecha</span>';
@@ -1014,7 +1015,7 @@ function renderDonaciones() {
       <td><select class="is" id="ed-pais">${popts(d.pais)}</select></td>
       <td><input class="ii" type="number" id="ed-monto" value="${d.monto||0}" style="text-align:right;min-width:80px;"></td>
       <td><input class="ii" id="ed-notas" value="${d.notas||''}"></td>
-      <td>${entidadBadge(d.entidad_id)}</td>
+      <td><select class="is" id="ed-entidad">${edEntidadOpts(d.entidad_id)}</select></td>
       <td><div style="display:flex;gap:4px;">${ib('save',`saveDon('${d.id}')`,'save')}${ib('cancel','cancelDon()','cancel')}</div></td>
     </tr>`;
     const ent = entidades.find(e=>e.id===d.entidad_id);
@@ -1107,7 +1108,7 @@ async function saveDon(id){
   const fecha=document.getElementById('ed-fecha').value;
   const monto=parseFloat(document.getElementById('ed-monto').value)||0;
   if(!fecha||!monto){alert('Fecha y monto requeridos.');return;}
-  const data={fecha,tipo:document.getElementById('ed-tipo').value,inst:document.getElementById('ed-inst').value.trim(),recv:document.getElementById('ed-recv').value.trim(),pais:document.getElementById('ed-pais').value,monto,notas:document.getElementById('ed-notas').value.trim()};
+  const data={fecha,tipo:document.getElementById('ed-tipo').value,inst:document.getElementById('ed-inst').value.trim(),recv:document.getElementById('ed-recv').value.trim(),pais:document.getElementById('ed-pais').value,monto,notas:document.getElementById('ed-notas').value.trim(),entidad_id:document.getElementById('ed-entidad').value||null};
   try {
     await fetch(`${SB_URL}/rest/v1/donaciones?id=eq.${id}`,{method:'PATCH',headers:getH(),body:JSON.stringify(data)});
     const idx=donaciones.findIndex(d=>d.id===id);
