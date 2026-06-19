@@ -1619,10 +1619,18 @@ function cropAndUploadFoto(bbox) {
     srcImg.crossOrigin = 'anonymous';
     srcImg.onload = async () => {
       try {
-        const sx = Math.round(bbox.x * srcImg.width);
-        const sy = Math.round(bbox.y * srcImg.height);
-        const sw = Math.round(bbox.width * srcImg.width);
-        const sh = Math.round(bbox.height * srcImg.height);
+        // Add ~15% padding around the detected box so slightly off boxes still capture the full face
+        const padX = bbox.width * 0.15;
+        const padY = bbox.height * 0.15;
+        const x = Math.max(0, bbox.x - padX);
+        const y = Math.max(0, bbox.y - padY);
+        const width  = Math.min(1 - x, bbox.width  + padX * 2);
+        const height = Math.min(1 - y, bbox.height + padY * 2);
+
+        const sx = Math.round(x * srcImg.width);
+        const sy = Math.round(y * srcImg.height);
+        const sw = Math.round(width * srcImg.width);
+        const sh = Math.round(height * srcImg.height);
         if (sw <= 0 || sh <= 0) return resolve(null);
 
         // Target a small thumbnail — max 300px on the longer side
