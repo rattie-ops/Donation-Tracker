@@ -1594,8 +1594,13 @@ async function scanCertWithAI(imgType) {
     // Crop the carnet photo using the bounding box and upload to Storage
     if (parsed.foto_bbox) {
       try {
+        const oldUrl = _pendingFotoCarnetUrl;
         const url = await cropAndUploadFoto(parsed.foto_bbox);
-        if (url) { _pendingFotoCarnetUrl = url; setFotoCarnetPreview(url); }
+        if (url) {
+          _pendingFotoCarnetUrl = url;
+          setFotoCarnetPreview(url);
+          if (oldUrl && oldUrl !== url) deleteFotoCarnet(oldUrl);
+        }
       } catch(cropErr) {
         console.warn('No se pudo recortar/subir la foto del carnet:', cropErr);
       }
@@ -1608,6 +1613,19 @@ async function scanCertWithAI(imgType) {
 }
 
 let _pendingFotoCarnetUrl = null;
+
+// Deletes a previously uploaded carnet photo from Storage given its public URL
+async function deleteFotoCarnet(url) {
+  if (!url) return;
+  try {
+    const fileName = url.split('/entidad-fotos/')[1];
+    if (!fileName) return;
+    await fetch(`${SB_URL}/storage/v1/object/entidad-fotos/${fileName}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (_session?.access_token || SB_KEY) }
+    });
+  } catch(e) { console.warn('No se pudo borrar la foto anterior:', e); }
+}
 
 // Crops the headshot region from the (already compressed) cert image using a fractional
 // bounding box {x,y,width,height}, re-compresses it small, and uploads to Supabase Storage.
@@ -1749,9 +1767,11 @@ async function handleFotoCarnetManual(input) {
   if (!file) return;
   try {
     showOk('ok-entidad', 'Subiendo foto...');
+    const oldUrl = _pendingFotoCarnetUrl;
     const { url } = await compressAndUploadFoto(file);
     _pendingFotoCarnetUrl = url;
     setFotoCarnetPreview(url);
+    if (oldUrl && oldUrl !== url) deleteFotoCarnet(oldUrl);
     showOk('ok-entidad', '✓ Foto cargada. Guarda la entidad para confirmar.');
   } catch(e) {
     showErr('err-entidad', 'No se pudo subir la foto: ' + e.message);
@@ -1816,7 +1836,9 @@ async function saveEntidad() {
 async function delEntidad(id) {
   if (!confirm('¿Eliminar esta entidad?')) return;
   try {
+    const e = entidades.find(x => x.id === id);
     await fetch(`${SB_URL}/rest/v1/entidades?id=eq.${id}`, {method:'DELETE', headers:getH()});
+    if (e?.foto_carnet_url) deleteFotoCarnet(e.foto_carnet_url);
     renderEntidades();
   } catch(e) { alert('Error: ' + e.message); }
 }
