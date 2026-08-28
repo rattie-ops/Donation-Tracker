@@ -194,8 +194,6 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 3rem; color: var(--t2); font-size: 13px; }
 .spinner { width: 18px; height: 18px; border: 2px solid var(--bt); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.spin-ic { width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; display: inline-block; vertical-align: -2px; margin-right: 6px; opacity: .9; animation: spin .6s linear infinite; }
-button:disabled { cursor: not-allowed; opacity: .75; }
 
 /* ── LOGIN ── */
 .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1a2550 0%, #1e3a80 50%, #1a2550 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; }
@@ -282,7 +280,7 @@ button:disabled { cursor: not-allowed; opacity: .75; }
 <body>
 
 <div id="login-screen" class="login-screen">
-  <div class="login-card">
+  <div class="login-card" id="login-card">
     <div class="login-logo">
       <div class="login-logo-icon">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14.8 9A2 2 0 0 0 13 8h-2a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-2a2 2 0 0 1-1.8-1"/><path d="M12 7v1m0 8v1"/></svg>
@@ -333,6 +331,24 @@ button:disabled { cursor: not-allowed; opacity: .75; }
       <button class="login-btn" id="btn-register" onclick="doRegister()">Crear cuenta</button>
     </div>
   </div>
+
+  <div class="login-card" id="mfa-login-card" style="display:none;">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      </div>
+      <p>Verificación</p>
+      <h2>Código de acceso</h2>
+    </div>
+    <div id="mfa-login-err" class="login-err"></div>
+    <p style="font-size:13px;color:var(--t2);text-align:center;margin-bottom:1.25rem;">Ingresa el código de 6 dígitos de tu app autenticadora.</p>
+    <div class="login-field">
+      <label>Código</label>
+      <input type="text" id="mfa-login-code" inputmode="numeric" maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:20px;font-weight:700;" onkeydown="if(event.key==='Enter')verifyMfaLogin()">
+    </div>
+    <button class="login-btn" id="btn-mfa-login" onclick="verifyMfaLogin()">Verificar</button>
+    <button onclick="cancelMfaLogin()" style="width:100%;background:none;border:none;color:var(--t3);font-size:12px;margin-top:0.75rem;cursor:pointer;padding:6px;">Cancelar e iniciar de nuevo</button>
+  </div>
 </div>
 
 <aside class="sidebar">
@@ -370,7 +386,7 @@ button:disabled { cursor: not-allowed; opacity: .75; }
     <div class="nav-section">Sistema</div>
     <button class="nav-item" data-label="Configuración" onclick="switchPage('config')">
       <svg viewBox="0 0 24 24"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
-      <span>Configuración</span>
+      <span>Config</span>
     </button>
 
   </nav>
@@ -428,13 +444,6 @@ button:disabled { cursor: not-allowed; opacity: .75; }
           <div class="fgi"><label>País</label><select id="nd-pais"></select></div>
           <div class="fgi"><label>Monto (USD)</label><input type="number" id="nd-monto" placeholder="0" min="0"></div>
           <div class="fgi"><label>Meta</label><div id="nd-meta-info" style="padding:10px 12px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg2);font-size:13px;color:var(--t2);">Cargando...</div></div>
-          <div class="fgi">
-            <label>Entidad</label>
-            <input type="text" id="nd-entidad-search" placeholder="Buscar entidad..." oninput="filterNdEntidad()" style="font-size:14px;border-radius:var(--rm);border:1px solid var(--bt);padding:10px 12px;background:var(--bg1);color:var(--t1);box-shadow:var(--shadow-sm);margin-bottom:6px;">
-            <select id="nd-entidad" style="font-size:14px;border-radius:var(--rm);border:1px solid var(--bt);padding:10px 12px;background:var(--bg1);color:var(--t1);box-shadow:var(--shadow-sm);">
-              <option value="">— Sin entidad —</option>
-            </select>
-          </div>
           <div class="fgi ff"><label>Notas</label><textarea id="nd-notas" placeholder="Comentarios adicionales..."></textarea></div>
         </div>
         <div style="margin-top:1.25rem;display:flex;gap:8px;">
@@ -453,7 +462,7 @@ button:disabled { cursor: not-allowed; opacity: .75; }
       </div>
       <div class="card" style="padding:0;">
         <div class="tbl-wrap">
-          <table><thead><tr><th>Fecha</th><th>Meta</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th style="max-width:100px;">Notas</th><th>Entidad</th><th style="width:90px;"></th></tr></thead><tbody id="don-body"></tbody></table>
+          <table><thead><tr><th>Fecha</th><th>Meta</th><th>Categoría</th><th>Institución</th><th>Recibido por</th><th>País</th><th style="text-align:right;">Monto</th><th>Notas</th><th style="width:68px;"></th></tr></thead><tbody id="don-body"></tbody></table>
         </div>
         <p id="don-empty" class="empty" style="display:none;">No hay donaciones.</p>
       </div>
@@ -537,19 +546,6 @@ button:disabled { cursor: not-allowed; opacity: .75; }
         </div>
         <!-- Fields -->
         <div class="fg" style="margin-top:1rem;">
-          <div class="fgi ff" style="flex-direction:row;align-items:center;gap:14px;">
-            <div id="foto-carnet-preview-wrap" style="flex-shrink:0;">
-              <img id="foto-carnet-preview" src="" alt="" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:1px solid var(--bt);display:none;">
-              <div id="foto-carnet-placeholder" style="width:56px;height:56px;border-radius:50%;background:var(--bg2);border:1px solid var(--bt);display:flex;align-items:center;justify-content:center;color:var(--t3);">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
-              </div>
-            </div>
-            <div>
-              <label style="font-size:12px;color:var(--t2);font-weight:600;letter-spacing:.02em;text-transform:uppercase;display:block;margin-bottom:6px;">Foto carnet</label>
-              <input type="file" id="foto-carnet-input" accept="image/*" style="display:none;" onchange="handleFotoCarnetManual(this)">
-              <button type="button" class="ba" onclick="document.getElementById('foto-carnet-input').click()">Subir / cambiar foto</button>
-            </div>
-          </div>
           <div class="fgi"><label>Teuda No.</label><input type="text" id="ent-teuda"></div>
           <div class="fgi"><label>Nombre institución</label><input type="text" id="ent-nombre-inst"></div>
           <div class="fgi"><label>Nombre representante</label><input type="text" id="ent-nombre-rep"></div>
@@ -576,7 +572,7 @@ button:disabled { cursor: not-allowed; opacity: .75; }
       <div class="card" style="padding:0;">
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th style="width:44px;"></th><th>Institución</th><th>Representante</th><th>País/Ciudad</th><th>Teuda</th><th style="text-align:right;">Presupuesto</th><th>Alumnos</th><th style="width:68px;"></th></tr></thead>
+            <thead><tr><th>Institución</th><th>Representante</th><th>País/Ciudad</th><th>Teuda</th><th>Expiración</th><th>Alumnos</th><th style="width:68px;"></th></tr></thead>
             <tbody id="entidades-body"></tbody>
           </table>
         </div>
@@ -591,7 +587,7 @@ button:disabled { cursor: not-allowed; opacity: .75; }
       <div style="display:flex;gap:4px;border-bottom:1px solid var(--bt);margin-bottom:1.5rem;">
         <button class="cfg-tab active" onclick="switchCfgTab('general')" style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--t2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;">General</button>
         <button class="cfg-tab" onclick="switchCfgTab('importar')" style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--t2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;">Importar Excel</button>
-        <button class="cfg-tab" onclick="switchCfgTab('usuarios')" style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--t2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;">Usuario</button>
+        <button class="cfg-tab" onclick="switchCfgTab('usuarios')" style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--t2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;">Usuarios</button>
       </div>
 
       <!-- TAB: General -->
@@ -711,6 +707,26 @@ button:disabled { cursor: not-allowed; opacity: .75; }
           </div>
           <div style="margin-top:1.25rem;"><button class="btn" onclick="changePassword()">Cambiar contraseña</button></div>
         </div>
+        <div class="card" style="margin-top:1.25rem;">
+          <div style="font-size:14px;font-weight:500;margin-bottom:1rem;">Verificación en dos pasos (2FA)</div>
+          <div id="mfa-ok" class="ok-msg"></div>
+          <div id="mfa-err" class="err-msg"></div>
+          <div id="mfa-status" style="margin-bottom:1rem;">Cargando...</div>
+          <div id="mfa-enroll-form" style="display:none;">
+            <p style="font-size:13px;color:var(--t2);margin-bottom:1rem;">Protege tu cuenta con un código temporal generado por una app como Google Authenticator o Authy.</p>
+            <button class="ba" onclick="startMfaEnroll()" id="btn-mfa-start">Activar verificación en dos pasos</button>
+            <div id="mfa-enroll-step2" style="display:none;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--bt);">
+              <p style="font-size:13px;color:var(--t2);margin-bottom:0.75rem;">1. Escanea este código QR con tu app autenticadora:</p>
+              <div id="mfa-qr" style="max-width:180px;margin:0 auto 1rem;"></div>
+              <p style="font-size:12px;color:var(--t3);text-align:center;margin-bottom:1rem;">O ingresa el código manualmente:<br><code id="mfa-secret" style="font-size:12px;background:var(--bg2);padding:3px 8px;border-radius:6px;display:inline-block;margin-top:4px;"></code></p>
+              <p style="font-size:13px;color:var(--t2);margin-bottom:0.5rem;">2. Ingresa el código de 6 dígitos que muestra la app:</p>
+              <div class="fg">
+                <div class="fgi"><input type="text" id="mfa-enroll-code" inputmode="numeric" maxlength="6" placeholder="000000" style="letter-spacing:3px;text-align:center;font-size:16px;" onkeydown="if(event.key==='Enter')confirmMfaEnroll()"></div>
+              </div>
+              <button class="btn" style="margin-top:0.75rem;" onclick="confirmMfaEnroll()">Verificar y activar</button>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -798,38 +814,10 @@ const ib = (cls,fn,ico) => `<button class="ib ${cls}" onclick="${fn}">${SVG[ico]
 let donaciones=[], pendientes=[], tipos=[], paises=[], metas=[], metaActiva=null;
 let editDon=null, editPend=null, editTipo=null, editPais=null;
 const COLORS = ['#3266ad','#7F77DD','#1D9E75','#D85A30','#D4537E','#639922','#BA7517','#E24B4A'];
-const SVG_LINK = c=>`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
-function entidadBadge(entidad_id) {
-  if (!entidad_id) return `<span style="color:var(--t3);font-size:11px;">—</span>`;
-  const e = entidades.find(x=>x.id===entidad_id);
-  if (!e) return `<span style="color:var(--t3);font-size:11px;">—</span>`;
-  const name = e.nombre_institucion || e.nombre_representante || 'Entidad';
-  return `<span class="badge" onclick="goToEntidad('${entidad_id}')" style="background:var(--bg2);color:var(--t2);border:1px solid var(--bt);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;cursor:pointer;" title="Ver entidad: ${name}">${name}</span>`;
-}
-
-function goToEntidad(entidad_id) {
-  switchPage('entidades');
-  // Wait for renderEntidades to finish then highlight the row
-  setTimeout(() => {
-    const rows = document.querySelectorAll('#entidades-body tr');
-    rows.forEach(tr => tr.style.background = '');
-    // Find the row by matching edit button onclick
-    for (const tr of rows) {
-      if (tr.innerHTML.includes(entidad_id)) {
-        tr.style.background = 'var(--blue-l)';
-        tr.style.transition = 'background 1s';
-        tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => { tr.style.background = ''; }, 2500);
-        break;
-      }
-    }
-  }, 400);
-}
 
 // ── Helpers ──
 function today() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function fmt(n) { return '$'+Number(n||0).toLocaleString('en-US'); }
-function fmtNum(n) { return Number(n||0).toLocaleString('en-US'); }
 function fmtD(d) { if(!d)return'—'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0].slice(2)}`; }
 function daysUntil(s) { if(!s)return null; const t=new Date(); t.setHours(0,0,0,0); const u=new Date(s); u.setHours(0,0,0,0); return Math.round((u-t)/86400000); }
 function topts(sel) { return `<option value="">Sin categoría</option>`+tipos.map(t=>`<option value="${t}"${sel===t?' selected':''}>${t}</option>`).join(''); }
@@ -875,7 +863,6 @@ function tipoBadge(tipo) {
   return `<span class="badge" style="background:${c.bg};color:${c.color};border:1px solid ${c.border};text-transform:capitalize;">${tipo}</span>`;
 }
 function popts(sel) { return `<option value="">—</option>`+paises.map(p=>`<option value="${p}"${sel===p?' selected':''}>${p}</option>`).join(''); }
-function edEntidadOpts(sel) { return `<option value="">— Sin entidad —</option>`+entidades.map(e=>{const name=e.nombre_institucion||e.nombre_representante||e.id;return `<option value="${e.id}"${sel===e.id?' selected':''}>${name}</option>`;}).join(''); }
 function dueBadge(due) {
   const d=daysUntil(due);
   if(d===null) return '<span style="color:var(--t3)">Sin fecha</span>';
@@ -901,18 +888,16 @@ function refreshSelects() {
 async function loadAll() {
   document.getElementById('don-body').innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spinner"></div> Cargando datos...</div></td></tr>';
   try {
-    const [dons, pends, tiposRes, paisesRes, entidadesRes] = await Promise.all([
+    const [dons, pends, tiposRes, paisesRes] = await Promise.all([
       sb('donaciones', 'GET', null, '?order=fecha.desc'),
       sb('pendientes', 'GET', null, '?order=due.asc.nullslast,created_at.desc'),
       sb('tipos', 'GET', null, '?order=nombre.asc'),
-      sb('paises', 'GET', null, '?order=nombre.asc'),
-      sb('entidades', 'GET', null, '?order=nombre_institucion.asc')
+      sb('paises', 'GET', null, '?order=nombre.asc')
     ]);
     donaciones = dons;
     pendientes = pends;
     tipos  = tiposRes.map(t => t.nombre);
     paises = paisesRes.map(p => p.nombre);
-    entidades = entidadesRes;
   } catch(e) {
     console.error('Error loading:', e);
     donaciones=[]; pendientes=[];
@@ -989,7 +974,7 @@ function renderDashPending() {
     const days=daysUntil(p.due);
     const dueStr=days===null?'Sin fecha':days<0?`${Math.abs(days)}d vencida`:days===0?'Hoy':`${days}d`;
     const dueColor=days===null?'var(--t3)':days<0?'#A32D2D':days<=3?'#BA7517':'var(--t2)';
-    return `<div class="pending-item"><div><div class="pending-item-name">${name}</div>${p.monto?`<div class="pending-item-sub">${fmt(p.monto)}</div>`:''}</div><div class="pending-item-right"><span style="font-size:12px;color:${dueColor};font-weight:500;">${dueStr}</span><button class="confirm-btn" onclick="confirmPend('${p.id}', this)" style="padding:3px 8px;font-size:11px;">${SVG.confirm('#0F6E56')} OK</button></div></div>`;
+    return `<div class="pending-item"><div><div class="pending-item-name">${name}</div>${p.monto?`<div class="pending-item-sub">${fmt(p.monto)}</div>`:''}</div><div class="pending-item-right"><span style="font-size:12px;color:${dueColor};font-weight:500;">${dueStr}</span><button class="confirm-btn" onclick="confirmPend('${p.id}')" style="padding:3px 8px;font-size:11px;">${SVG.confirm('#0F6E56')} OK</button></div></div>`;
   }).join('');
 }
 
@@ -1018,10 +1003,8 @@ function renderDonaciones() {
       <td><select class="is" id="ed-pais">${popts(d.pais)}</select></td>
       <td><input class="ii" type="number" id="ed-monto" value="${d.monto||0}" style="text-align:right;min-width:80px;"></td>
       <td><input class="ii" id="ed-notas" value="${d.notas||''}"></td>
-      <td><select class="is" id="ed-entidad">${edEntidadOpts(d.entidad_id)}</select></td>
       <td><div style="display:flex;gap:4px;">${ib('save',`saveDon('${d.id}')`,'save')}${ib('cancel','cancelDon()','cancel')}</div></td>
     </tr>`;
-    const ent = entidades.find(e=>e.id===d.entidad_id);
     return `<tr>
       <td style="color:var(--t2);white-space:nowrap;">${fmtD(d.fecha)}</td>
       <td>${metaBadge(d.meta_id)}</td>
@@ -1030,9 +1013,8 @@ function renderDonaciones() {
       <td>${d.recv||`<span style="color:var(--t3);">—</span>`}</td>
       <td style="color:var(--t2);">${d.pais||'—'}</td>
       <td style="text-align:right;" class="amount">${fmt(d.monto)}</td>
-      <td style="color:var(--t2);font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${d.notas||''}">${d.notas||''}</td>
-      <td>${entidadBadge(d.entidad_id)}</td>
-      <td><div style="display:flex;gap:4px;">${ib('edit',`startDon('${d.id}')`,'edit')}${ib('repeat',`repeatDon('${d.id}')`,'repeat')}<button class="ib" onclick="openLinkEntidad('${d.id}')" title="Asociar entidad" style="${d.entidad_id?'border-color:#86efac;':''}">${SVG_LINK(d.entidad_id?'#16a34a':'#888780')}</button>${ib('del',`delDon('${d.id}')`,'del')}</div></td>
+      <td style="color:var(--t2);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notas||''}</td>
+      <td><div style="display:flex;gap:4px;">${ib('edit',`startDon('${d.id}')`,'edit')}${ib('repeat',`repeatDon('${d.id}')`,'repeat')}${ib('del',`delDon('${d.id}')`,'del')}</div></td>
     </tr>`;
   }).join('');
 }
@@ -1111,7 +1093,7 @@ async function saveDon(id){
   const fecha=document.getElementById('ed-fecha').value;
   const monto=parseFloat(document.getElementById('ed-monto').value)||0;
   if(!fecha||!monto){alert('Fecha y monto requeridos.');return;}
-  const data={fecha,tipo:document.getElementById('ed-tipo').value,inst:document.getElementById('ed-inst').value.trim(),recv:document.getElementById('ed-recv').value.trim(),pais:document.getElementById('ed-pais').value,monto,notas:document.getElementById('ed-notas').value.trim(),entidad_id:document.getElementById('ed-entidad').value||null};
+  const data={fecha,tipo:document.getElementById('ed-tipo').value,inst:document.getElementById('ed-inst').value.trim(),recv:document.getElementById('ed-recv').value.trim(),pais:document.getElementById('ed-pais').value,monto,notas:document.getElementById('ed-notas').value.trim()};
   try {
     await fetch(`${SB_URL}/rest/v1/donaciones?id=eq.${id}`,{method:'PATCH',headers:getH(),body:JSON.stringify(data)});
     const idx=donaciones.findIndex(d=>d.id===id);
@@ -1125,57 +1107,6 @@ async function delDon(id){
     await fetch(`${SB_URL}/rest/v1/donaciones?id=eq.${id}`,{method:'DELETE',headers:getH()});
     donaciones=donaciones.filter(d=>d.id!==id);
     renderMetrics(); renderDonaciones();
-  } catch(e){ alert('Error: '+e.message); }
-}
-
-let _linkDonId = null;
-function buildEntidadOptions(selectId, filter='', currentId=null) {
-  const q = filter.toLowerCase();
-  const filtered = entidades.filter(e => {
-    const name = (e.nombre_institucion||e.nombre_representante||'').toLowerCase();
-    return !q || name.includes(q);
-  });
-  const sel = document.getElementById(selectId);
-  if (!sel) return;
-  sel.innerHTML = '<option value="">— Sin entidad —</option>' +
-    filtered.map(e => {
-      const name = e.nombre_institucion || e.nombre_representante || e.id;
-      return `<option value="${e.id}"${currentId===e.id?' selected':''}>${name}</option>`;
-    }).join('');
-}
-function buildLinkOptions(filter='', currentId=null) { buildEntidadOptions('link-entidad-select', filter, currentId); }
-function filterLinkEntidades() {
-  const q = document.getElementById('link-entidad-search').value;
-  const don = donaciones.find(d=>d.id===_linkDonId);
-  buildLinkOptions(q, don?.entidad_id||null);
-}
-function filterNdEntidad() {
-  const q = document.getElementById('nd-entidad-search').value;
-  const sel = document.getElementById('nd-entidad');
-  const current = sel?.value || null;
-  buildEntidadOptions('nd-entidad', q, current);
-}
-function openLinkEntidad(donId) {
-  _linkDonId = donId;
-  const don = donaciones.find(d=>d.id===donId);
-  document.getElementById('link-entidad-search').value = '';
-  buildLinkOptions('', don?.entidad_id||null);
-  document.getElementById('link-entidad-dialog').style.display = 'flex';
-  setTimeout(()=>document.getElementById('link-entidad-search').focus(), 50);
-}
-function closeLinkEntidad() {
-  document.getElementById('link-entidad-dialog').style.display = 'none';
-  _linkDonId = null;
-}
-async function confirmLinkEntidad() {
-  if (!_linkDonId) return;
-  const entidad_id = document.getElementById('link-entidad-select').value || null;
-  try {
-    await fetch(`${SB_URL}/rest/v1/donaciones?id=eq.${_linkDonId}`,{method:'PATCH',headers:getH(),body:JSON.stringify({entidad_id})});
-    const idx = donaciones.findIndex(d=>d.id===_linkDonId);
-    if(idx>=0) donaciones[idx].entidad_id = entidad_id;
-    closeLinkEntidad();
-    renderDonaciones();
   } catch(e){ alert('Error: '+e.message); }
 }
 
@@ -1212,7 +1143,7 @@ function renderPendientes() {
       <td style="text-align:right;" class="amount">${fmt(d.monto)}</td>
       <td style="color:var(--t2);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notas||''}</td>
       <td><div style="display:flex;gap:4px;">
-        <button class="confirm-btn" onclick="confirmPend('${d.id}', this)">${SVG.confirm('#0F6E56')} Confirmar</button>
+        <button class="confirm-btn" onclick="confirmPend('${d.id}')">${SVG.confirm('#0F6E56')} Confirmar</button>
         ${ib('edit',`startPend('${d.id}')`,'edit')}${ib('del',`delPend('${d.id}')`,'del')}
       </div></td>
     </tr>`;
@@ -1237,12 +1168,9 @@ async function delPend(id){
     renderMetrics(); renderReminder(); renderPendientes(); renderDashPending();
   } catch(e){ alert('Error: '+e.message); }
 }
-async function confirmPend(id, btn) {
-  if(btn && btn.disabled) return;
+async function confirmPend(id) {
   const p=pendientes.find(x=>x.id===id);
   if(!p)return;
-  const orig = btn ? btn.innerHTML : null;
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spin-ic"></span>Confirmando...'; }
   try {
     const newDon={fecha:today(),tipo:p.tipo,inst:p.inst,recv:p.recv,pais:p.pais,monto:p.monto,notas:p.notas,user_id:currentUser.id,meta_id:metaActiva?.id||null};
     const res=await sb('donaciones','POST',newDon);
@@ -1251,7 +1179,7 @@ async function confirmPend(id, btn) {
     pendientes=pendientes.filter(x=>x.id!==id);
     renderMetrics(); renderReminder(); renderPendientes(); renderDonaciones(); renderDashPending();
     showOk('ok-don',`✓ ${p.recv||p.inst||'Donación'} confirmada y agregada al historial.`);
-  } catch(e){ alert('Error: '+e.message); if(btn){ btn.disabled=false; btn.innerHTML=orig; } }
+  } catch(e){ alert('Error: '+e.message); }
 }
 
 // ── Config ──
@@ -1394,16 +1322,14 @@ async function addDonacion(){
   const monto=parseFloat(document.getElementById('nd-monto').value)||0;
   if(!fecha||!monto){alert('Fecha y monto requeridos.');return;}
   const btn=document.getElementById('btn-don');
-  if(btn.disabled) return;
-  btn.disabled=true; btn.innerHTML='<span class="spin-ic"></span>Guardando...';
+  btn.disabled=true; btn.textContent='Guardando...';
   try {
-    const data={fecha,tipo:document.getElementById('nd-tipo').value,inst:document.getElementById('nd-inst').value.trim(),recv:document.getElementById('nd-recv').value.trim(),pais:document.getElementById('nd-pais').value,monto,notas:document.getElementById('nd-notas').value.trim(),user_id:currentUser.id,meta_id:metaActiva?.id||null,entidad_id:document.getElementById('nd-entidad').value||null};
+    const data={fecha,tipo:document.getElementById('nd-tipo').value,inst:document.getElementById('nd-inst').value.trim(),recv:document.getElementById('nd-recv').value.trim(),pais:document.getElementById('nd-pais').value,monto,notas:document.getElementById('nd-notas').value.trim(),user_id:currentUser.id,meta_id:metaActiva?.id||null};
     const res=await sb('donaciones','POST',data);
     if(res&&res[0]) donaciones.unshift(res[0]);
     ['nd-inst','nd-recv','nd-monto','nd-notas'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('nd-tipo').value=''; document.getElementById('nd-pais').value='';
     document.getElementById('nd-fecha').value=today();
-    document.getElementById('nd-entidad-search').value=''; buildEntidadOptions('nd-entidad');
     showOk('ok-don','Donación registrada correctamente.');
     renderMetrics(); renderDonaciones();
     setTimeout(()=>toggleForm('don'), 1500);
@@ -1415,8 +1341,7 @@ async function addPendiente(){
   const monto=parseFloat(document.getElementById('np-monto').value)||0;
   if(!monto){alert('Monto requerido.');return;}
   const btn=document.getElementById('btn-pend');
-  if(btn.disabled) return;
-  btn.disabled=true; btn.innerHTML='<span class="spin-ic"></span>Guardando...';
+  btn.disabled=true; btn.textContent='Guardando...';
   try {
     const data={fecha:document.getElementById('np-fecha').value||today(),due:document.getElementById('np-due').value,tipo:document.getElementById('np-tipo').value,inst:document.getElementById('np-inst').value.trim(),recv:document.getElementById('np-recv').value.trim(),pais:document.getElementById('np-pais').value,monto,notas:document.getElementById('np-notas').value.trim(),user_id:currentUser.id};
     const res=await sb('pendientes','POST',data);
@@ -1443,16 +1368,13 @@ function renderCharts(prefix){
   const pL=Object.keys(byP),pD=Object.values(byP);
   const tDon=srcDon.reduce((a,d)=>a+(d.monto||0),0);
   const tPen=srcPen.reduce((a,p)=>a+(p.monto||0),0);
-  // Colores consistentes: mismo array para dataset y leyenda
-  const tColors = tL.map((_,i) => COLORS[i % COLORS.length]);
-  const pColors = pL.map((_,i) => COLORS[(i+3) % COLORS.length]);
   ['chart-tipo','chart-pais'].forEach(id=>destroyChart(prefix+id));
-  charts[prefix+'chart-tipo']=new Chart(document.getElementById(prefix+'chart-tipo'),{type:'doughnut',data:{labels:tL,datasets:[{data:tD,backgroundColor:tColors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}});
+  charts[prefix+'chart-tipo']=new Chart(document.getElementById(prefix+'chart-tipo'),{type:'doughnut',data:{labels:tL,datasets:[{data:tD,backgroundColor:COLORS.slice(0,tL.length),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}});
   const tTotal=tD.reduce((a,b)=>a+b,0);
-  document.getElementById(prefix+'leg-tipo').innerHTML=tL.map((l,i)=>{const pct=tTotal?Math.round(tD[i]/tTotal*100):0;return `<div class="li"><div class="ld" style="background:${tColors[i]}"></div>${l}: ${pct}%</div>`;}).join('');
-  charts[prefix+'chart-pais']=new Chart(document.getElementById(prefix+'chart-pais'),{type:'doughnut',data:{labels:pL,datasets:[{data:pD,backgroundColor:pColors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}});
+  document.getElementById(prefix+'leg-tipo').innerHTML=tL.map((l,i)=>{const pct=tTotal?Math.round(tD[i]/tTotal*100):0;return `<div class="li"><div class="ld" style="background:${COLORS[i%COLORS.length]}"></div>${l}: ${pct}%</div>`;}).join('');
+  charts[prefix+'chart-pais']=new Chart(document.getElementById(prefix+'chart-pais'),{type:'doughnut',data:{labels:pL,datasets:[{data:pD,backgroundColor:COLORS.slice(0,pL.length).reverse(),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}});
   const pTotal=pD.reduce((a,b)=>a+b,0);
-  document.getElementById(prefix+'leg-pais').innerHTML=pL.map((l,i)=>{const pct=pTotal?Math.round(pD[i]/pTotal*100):0;return `<div class="li"><div class="ld" style="background:${pColors[i]}"></div>${l}: ${pct}%</div>`;}).join('');
+  document.getElementById(prefix+'leg-pais').innerHTML=pL.map((l,i)=>{const pct=pTotal?Math.round(pD[i]/pTotal*100):0;return `<div class="li"><div class="ld" style="background:${COLORS.slice().reverse()[i%COLORS.length]}"></div>${l}: ${pct}%</div>`;}).join('');
 }
 
 // ── Navigation ──
@@ -1466,7 +1388,7 @@ function switchCfgTab(tab) {
   document.querySelectorAll('.cfg-sec').forEach(s => s.style.display = 'none');
   const el = document.getElementById(`cfg-${tab}`);
   if (el) el.style.display = 'block';
-  if (tab === 'usuarios') renderUsers();
+  if (tab === 'usuarios') { renderUsers(); renderMfaStatus(); }
 }
 async function renderUsers() {
   const list = document.getElementById('user-list');
@@ -1511,9 +1433,8 @@ function toggleForm(type) {
   const open = form.style.display === 'none' || form.style.display === '';
   form.style.display = open ? 'block' : 'none';
   if (open) {
-    if (type === 'don') { document.getElementById('nd-fecha').value = today(); refreshSelects(); renderMetaInfo(); document.getElementById('nd-entidad-search').value=''; buildEntidadOptions('nd-entidad'); }
+    if (type === 'don') { document.getElementById('nd-fecha').value = today(); refreshSelects(); renderMetaInfo(); }
     if (type === 'pend') { document.getElementById('np-fecha').value = today(); refreshSelects(); }
-    if (type === 'entidad' && !_editEntidadId) { _pendingFotoCarnetUrl = null; setFotoCarnetPreview(null); }
     // Scroll form into view
     form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -1535,19 +1456,16 @@ async function renderEntidades() {
   const body = document.getElementById('entidades-body');
   const empty = document.getElementById('entidades-empty');
   if (!body) return;
-  body.innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>';
+  body.innerHTML = '<tr><td colspan="7"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>';
   await loadEntidades();
   if (!entidades.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
   body.innerHTML = entidades.map(e => `<tr>
-    <td>${e.foto_carnet_url
-      ? `<img src="${e.foto_carnet_url}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--bt);display:block;">`
-      : `<div style="width:32px;height:32px;border-radius:50%;background:var(--bg2);border:1px solid var(--bt);display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:11px;font-weight:600;">${(e.nombre_institucion||'?').charAt(0).toUpperCase()}</div>`}</td>
     <td style="font-weight:500;">${e.nombre_institucion||'—'}</td>
     <td>${e.nombre_representante||'—'}</td>
     <td style="color:var(--t2);">${e.pais_ciudad||'—'}</td>
     <td style="color:var(--t2);">${e.teuda_numero||'—'}</td>
-    <td style="color:var(--t2);text-align:right;" class="amount">${e.presupuesto_anual?fmtNum(e.presupuesto_anual):'—'}</td>
+    <td style="color:var(--t2);white-space:nowrap;">${e.fecha_expiracion?fmtD(e.fecha_expiracion):'—'}</td>
     <td style="color:var(--t2);">${e.num_alumnos||'—'}</td>
     <td><div style="display:flex;gap:4px;">
       ${ib('edit',`editEntidad('${e.id}')`, 'edit')}
@@ -1559,248 +1477,50 @@ async function renderEntidades() {
 async function handleCertPhoto(input) {
   const file = input.files[0];
   if (!file) return;
-  try {
-    const { base64, dataUrl, mediaType } = await compressImage(file);
-    _certPhotoBase64 = base64;
-    document.getElementById('photo-img').src = dataUrl;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    _certPhotoBase64 = ev.target.result.split(',')[1];
+    const imgType = file.type || 'image/jpeg';
+    document.getElementById('photo-img').src = ev.target.result;
     document.getElementById('photo-preview').style.display = 'block';
     document.getElementById('photo-icon').style.display = 'none';
     document.getElementById('photo-label').textContent = file.name;
-    scanCertWithAI(mediaType);
-  } catch(e) {
-    showErr('err-entidad', 'No se pudo procesar la imagen: ' + e.message);
-  }
-}
-
-// Resizes/compresses an image file to keep it well under API limits (target < 4MB, max dimension 1800px)
-function compressImage(file, maxDim = 1800, quality = 0.85) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > maxDim || height > maxDim) {
-          if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
-          else { width = Math.round(width * maxDim / height); height = maxDim; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve({ base64: dataUrl.split(',')[1], dataUrl, mediaType: 'image/jpeg' });
-      };
-      img.onerror = () => reject(new Error('No se pudo leer la imagen'));
-      img.src = ev.target.result;
-    };
-    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
-    reader.readAsDataURL(file);
-  });
+    scanCertWithAI(imgType);
+  };
+  reader.readAsDataURL(file);
 }
 
 async function scanCertWithAI(imgType) {
   document.getElementById('ai-loading').style.display = 'block';
-  const el = document.querySelector('#ai-loading p');
-  if (el) el.textContent = 'Leyendo certificado con IA...';
   try {
-    const response = await fetch(`${SB_URL}/functions/v1/scan-cert`, {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (_session?.access_token || SB_KEY) },
-      body: JSON.stringify({ imageBase64: _certPhotoBase64, mediaType: imgType })
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': '',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: imgType, data: _certPhotoBase64 } },
+            { type: 'text', text: 'Extract all information from this certificate and return ONLY a JSON object with these exact keys (use null if not found):\n{"teuda_numero":"","fecha_expedicion":"YYYY-MM-DD","fecha_expiracion":"YYYY-MM-DD","nombre_representante":"","pasaporte":"","nombre_institucion":"","telefono_institucion":"","telefono_rabino_panama":"","pais_ciudad":"","num_alumnos":"","presupuesto_anual":null,"suma_gobierno":null,"ultima_visita":"","porcentaje_recibe":"","detalle_actividad":""}\nReturn ONLY the JSON, no other text.' }
+          ]
+        }]
+      })
     });
-    const result = await response.json();
-    if (result.error) throw new Error(result.error);
-    const parsed = result.data;
-    fillEntidadForm(parsed);
-    const found = Object.values(parsed).filter(v => v !== null && v !== '').length;
-    showOk('ok-entidad', `✓ ${found} campos detectados. Revisa y confirma.`);
-
-    // Crop the carnet photo using the bounding box and upload to Storage
-    if (parsed.foto_bbox) {
-      try {
-        const oldUrl = _pendingFotoCarnetUrl;
-        const url = await cropAndUploadFoto(parsed.foto_bbox);
-        if (url) {
-          _pendingFotoCarnetUrl = url;
-          setFotoCarnetPreview(url);
-          if (oldUrl && oldUrl !== url) deleteFotoCarnet(oldUrl);
-        }
-      } catch(cropErr) {
-        console.warn('No se pudo recortar/subir la foto del carnet:', cropErr);
-      }
-    }
+    const data = await response.json();
+    const text = data.content[0].text.trim().replace(/```json|```/g, '');
+    fillEntidadForm(JSON.parse(text));
+    showOk('ok-entidad', '✓ Datos extraídos del certificado. Revisa y confirma.');
   } catch(e) {
-    console.error('AI scan error:', e);
-    showErr('err-entidad', 'No se pudo leer automáticamente: ' + e.message);
+    showErr('err-entidad', 'No se pudo leer automáticamente. Llena los campos manualmente.');
   }
   document.getElementById('ai-loading').style.display = 'none';
-}
-
-let _pendingFotoCarnetUrl = null;
-
-// Deletes a previously uploaded carnet photo from Storage given its public URL
-async function deleteFotoCarnet(url) {
-  if (!url) return;
-  try {
-    const fileName = url.split('/entidad-fotos/')[1];
-    if (!fileName) return;
-    await fetch(`${SB_URL}/storage/v1/object/entidad-fotos/${fileName}`, {
-      method: 'DELETE',
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (_session?.access_token || SB_KEY) }
-    });
-  } catch(e) { console.warn('No se pudo borrar la foto anterior:', e); }
-}
-
-// Crops the headshot region from the (already compressed) cert image using a fractional
-// bounding box {x,y,width,height}, re-compresses it small, and uploads to Supabase Storage.
-function cropAndUploadFoto(bbox) {
-  return new Promise((resolve, reject) => {
-    const img = document.getElementById('photo-img');
-    if (!img || !img.src) return resolve(null);
-    const srcImg = new Image();
-    srcImg.crossOrigin = 'anonymous';
-    srcImg.onload = async () => {
-      try {
-        // Add ~15% padding around the detected box so slightly off boxes still capture the full face
-        const padX = bbox.width * 0.15;
-        const padY = bbox.height * 0.15;
-        const x = Math.max(0, bbox.x - padX);
-        const y = Math.max(0, bbox.y - padY);
-        const width  = Math.min(1 - x, bbox.width  + padX * 2);
-        const height = Math.min(1 - y, bbox.height + padY * 2);
-
-        const sx = Math.round(x * srcImg.width);
-        const sy = Math.round(y * srcImg.height);
-        const sw = Math.round(width * srcImg.width);
-        const sh = Math.round(height * srcImg.height);
-        if (sw <= 0 || sh <= 0) return resolve(null);
-
-        // Target a small thumbnail — max 300px on the longer side
-        const maxDim = 300;
-        let outW = sw, outH = sh;
-        if (outW > maxDim || outH > maxDim) {
-          if (outW > outH) { outH = Math.round(outH * maxDim / outW); outW = maxDim; }
-          else { outW = Math.round(outW * maxDim / outH); outH = maxDim; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = outW; canvas.height = outH;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(srcImg, sx, sy, sw, sh, 0, 0, outW, outH);
-
-        // Compress aggressively — aim for a few KB
-        let quality = 0.7;
-        let dataUrl = canvas.toDataURL('image/jpeg', quality);
-        while (dataUrl.length * 0.75 > 60 * 1024 && quality > 0.3) {
-          quality -= 0.1;
-          dataUrl = canvas.toDataURL('image/jpeg', quality);
-        }
-
-        const base64 = dataUrl.split(',')[1];
-        const fileName = `carnet_${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`;
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-        const uploadRes = await fetch(`${SB_URL}/storage/v1/object/entidad-fotos/${fileName}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'image/jpeg',
-            'apikey': SB_KEY,
-            'Authorization': 'Bearer ' + (_session?.access_token || SB_KEY)
-          },
-          body: bytes
-        });
-        if (!uploadRes.ok) {
-          const errText = await uploadRes.text();
-          throw new Error(errText);
-        }
-        const publicUrl = `${SB_URL}/storage/v1/object/public/entidad-fotos/${fileName}`;
-        resolve(publicUrl);
-      } catch(e) { reject(e); }
-    };
-    srcImg.onerror = () => resolve(null);
-    srcImg.src = img.src;
-  });
-}
-
-// Uploads a Blob/File of an image to Storage, compressing it down to a small thumbnail first.
-function compressAndUploadFoto(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = async () => {
-        try {
-          const maxDim = 300;
-          let outW = img.width, outH = img.height;
-          if (outW > maxDim || outH > maxDim) {
-            if (outW > outH) { outH = Math.round(outH * maxDim / outW); outW = maxDim; }
-            else { outW = Math.round(outW * maxDim / outH); outH = maxDim; }
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = outW; canvas.height = outH;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, outW, outH);
-
-          let quality = 0.8;
-          let dataUrl = canvas.toDataURL('image/jpeg', quality);
-          while (dataUrl.length * 0.75 > 60 * 1024 && quality > 0.3) {
-            quality -= 0.1;
-            dataUrl = canvas.toDataURL('image/jpeg', quality);
-          }
-
-          const base64 = dataUrl.split(',')[1];
-          const fileName = `carnet_${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`;
-          const binary = atob(base64);
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-          const uploadRes = await fetch(`${SB_URL}/storage/v1/object/entidad-fotos/${fileName}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'image/jpeg',
-              'apikey': SB_KEY,
-              'Authorization': 'Bearer ' + (_session?.access_token || SB_KEY)
-            },
-            body: bytes
-          });
-          if (!uploadRes.ok) { const errText = await uploadRes.text(); throw new Error(errText); }
-          resolve({ url: `${SB_URL}/storage/v1/object/public/entidad-fotos/${fileName}`, dataUrl });
-        } catch(e) { reject(e); }
-      };
-      img.onerror = () => reject(new Error('No se pudo leer la imagen'));
-      img.src = ev.target.result;
-    };
-    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
-    reader.readAsDataURL(file);
-  });
-}
-
-function setFotoCarnetPreview(url) {
-  const img = document.getElementById('foto-carnet-preview');
-  const ph = document.getElementById('foto-carnet-placeholder');
-  if (url) {
-    img.src = url; img.style.display = 'block'; ph.style.display = 'none';
-  } else {
-    img.src = ''; img.style.display = 'none'; ph.style.display = 'flex';
-  }
-}
-
-async function handleFotoCarnetManual(input) {
-  const file = input.files[0];
-  if (!file) return;
-  try {
-    showOk('ok-entidad', 'Subiendo foto...');
-    const oldUrl = _pendingFotoCarnetUrl;
-    const { url } = await compressAndUploadFoto(file);
-    _pendingFotoCarnetUrl = url;
-    setFotoCarnetPreview(url);
-    if (oldUrl && oldUrl !== url) deleteFotoCarnet(oldUrl);
-    showOk('ok-entidad', '✓ Foto cargada. Guarda la entidad para confirmar.');
-  } catch(e) {
-    showErr('err-entidad', 'No se pudo subir la foto: ' + e.message);
-  }
 }
 
 function fillEntidadForm(data) {
@@ -1841,9 +1561,7 @@ async function saveEntidad() {
     porcentaje_recibe: document.getElementById('ent-porcentaje').value.trim(),
     detalle_actividad: document.getElementById('ent-detalle').value.trim(),
     notas: document.getElementById('ent-notas').value.trim(),
-    foto_carnet_url: _pendingFotoCarnetUrl || undefined,
   };
-  if (data.foto_carnet_url === undefined) delete data.foto_carnet_url;
   try {
     if (_editEntidadId) {
       await fetch(`${SB_URL}/rest/v1/entidades?id=eq.${_editEntidadId}`, {method:'PATCH', headers:getH(), body:JSON.stringify(data)});
@@ -1861,9 +1579,7 @@ async function saveEntidad() {
 async function delEntidad(id) {
   if (!confirm('¿Eliminar esta entidad?')) return;
   try {
-    const e = entidades.find(x => x.id === id);
     await fetch(`${SB_URL}/rest/v1/entidades?id=eq.${id}`, {method:'DELETE', headers:getH()});
-    if (e?.foto_carnet_url) deleteFotoCarnet(e.foto_carnet_url);
     renderEntidades();
   } catch(e) { alert('Error: ' + e.message); }
 }
@@ -1884,8 +1600,6 @@ function editEntidad(id) {
     detalle_actividad: e.detalle_actividad,
   });
   document.getElementById('ent-notas').value = e.notas || '';
-  _pendingFotoCarnetUrl = e.foto_carnet_url || null;
-  setFotoCarnetPreview(e.foto_carnet_url || null);
 }
 
 // ── Excel Import ──
@@ -2210,6 +1924,143 @@ function switchAuthTab(tab) {
   document.getElementById('tab-register').style.borderBottomColor = isLogin ? 'transparent' : 'var(--blue)';
 }
 
+// ── MFA (TOTP) ──
+let _pendingMfaSession = null;
+let _pendingMfaFactor = null;
+let _pendingRemember = false;
+let _pendingRememberEmail = '';
+let _enrollFactorId = null;
+
+function showMfaLogin() {
+  document.getElementById('login-card').style.display = 'none';
+  document.getElementById('mfa-login-card').style.display = 'block';
+  document.getElementById('mfa-login-code').value = '';
+  setTimeout(() => document.getElementById('mfa-login-code').focus(), 50);
+}
+function cancelMfaLogin() {
+  _pendingMfaSession = null; _pendingMfaFactor = null;
+  document.getElementById('mfa-login-card').style.display = 'none';
+  document.getElementById('login-card').style.display = 'block';
+}
+async function verifyMfaLogin() {
+  const code = document.getElementById('mfa-login-code').value.trim();
+  const err = document.getElementById('mfa-login-err');
+  err.style.display = 'none';
+  if (!code || code.length < 6) { err.textContent = 'Ingresa el código de 6 dígitos.'; err.style.display = 'block'; return; }
+  const btn = document.getElementById('btn-mfa-login');
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  try {
+    const factorId = _pendingMfaFactor.id;
+    const token = _pendingMfaSession.access_token;
+    const chalRes = await fetch(`${SB_URL}/auth/v1/factors/${factorId}/challenge`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token }
+    });
+    const chal = await chalRes.json();
+    if (!chalRes.ok) throw new Error(chal.error_description || chal.msg || 'Error al generar el desafío.');
+    const verRes = await fetch(`${SB_URL}/auth/v1/factors/${factorId}/verify`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ challenge_id: chal.id, code })
+    });
+    const data = await verRes.json();
+    if (!verRes.ok) throw new Error(data.error_description || data.msg || 'Código incorrecto.');
+    _session = data;
+    currentUser = data.user;
+    if (_pendingRemember) {
+      localStorage.setItem(REMEMBER_KEY, _pendingRememberEmail);
+      sessionStorage.removeItem(SESSION_KEY);
+    } else {
+      localStorage.removeItem(REMEMBER_KEY);
+    }
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+    _pendingMfaSession = null; _pendingMfaFactor = null;
+    document.getElementById('mfa-login-card').style.display = 'none';
+    document.getElementById('login-card').style.display = 'block';
+    showApp();
+    loadAll();
+  } catch(e) {
+    err.textContent = e.message;
+    err.style.display = 'block';
+    document.getElementById('mfa-login-code').value = '';
+    document.getElementById('mfa-login-code').focus();
+  }
+  btn.disabled = false; btn.textContent = 'Verificar';
+}
+
+async function renderMfaStatus() {
+  const statusEl = document.getElementById('mfa-status');
+  const formEl = document.getElementById('mfa-enroll-form');
+  if (!statusEl) return;
+  statusEl.innerHTML = '<span style="font-size:12px;color:var(--t3);">Cargando...</span>';
+  try {
+    const res = await fetch(`${SB_URL}/auth/v1/user`, { headers: getH() });
+    const u = await res.json();
+    const verified = (u.factors || []).filter(f => f.status === 'verified');
+    if (verified.length) {
+      statusEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span class="badge" style="background:#dcfce7;color:#15803d;border:1px solid #86efac;">Activado</span>
+        <button class="ba" style="border-color:#fca5a5;color:#b91c1c;background:#fef2f2;" onclick="disableMfa('${verified[0].id}')">Desactivar</button>
+      </div>`;
+      formEl.style.display = 'none';
+    } else {
+      statusEl.innerHTML = `<span class="badge" style="background:var(--bg2);color:var(--t3);border:1px solid var(--bt);">Desactivado</span>`;
+      formEl.style.display = 'block';
+      document.getElementById('mfa-enroll-step2').style.display = 'none';
+    }
+  } catch(e) {
+    statusEl.innerHTML = `<span style="font-size:12px;color:var(--t3);">No se pudo cargar el estado.</span>`;
+  }
+}
+
+async function startMfaEnroll() {
+  const err = document.getElementById('mfa-err');
+  err.style.display = 'none';
+  const btn = document.getElementById('btn-mfa-start');
+  btn.disabled = true; btn.textContent = 'Generando...';
+  try {
+    const res = await fetch(`${SB_URL}/auth/v1/factors`, {
+      method: 'POST', headers: getH(),
+      body: JSON.stringify({ factor_type: 'totp', friendly_name: 'App autenticadora' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.msg || 'Error al iniciar la activación.');
+    _enrollFactorId = data.id;
+    document.getElementById('mfa-qr').innerHTML = data.totp.qr_code;
+    document.getElementById('mfa-secret').textContent = data.totp.secret;
+    document.getElementById('mfa-enroll-step2').style.display = 'block';
+    document.getElementById('mfa-enroll-code').value = '';
+  } catch(e) { showErr('mfa-err', e.message); }
+  btn.disabled = false; btn.textContent = 'Activar verificación en dos pasos';
+}
+
+async function confirmMfaEnroll() {
+  const code = document.getElementById('mfa-enroll-code').value.trim();
+  if (!code || code.length < 6) { showErr('mfa-err', 'Ingresa el código de 6 dígitos.'); return; }
+  try {
+    const chalRes = await fetch(`${SB_URL}/auth/v1/factors/${_enrollFactorId}/challenge`, { method: 'POST', headers: getH() });
+    const chal = await chalRes.json();
+    if (!chalRes.ok) throw new Error(chal.error_description || chal.msg || 'Error al generar el desafío.');
+    const verRes = await fetch(`${SB_URL}/auth/v1/factors/${_enrollFactorId}/verify`, {
+      method: 'POST', headers: getH(), body: JSON.stringify({ challenge_id: chal.id, code })
+    });
+    const data = await verRes.json();
+    if (!verRes.ok) throw new Error(data.error_description || data.msg || 'Código incorrecto.');
+    _session = data;
+    currentUser = data.user;
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+    showOk('mfa-ok', '✓ Verificación en dos pasos activada correctamente.');
+    renderMfaStatus();
+  } catch(e) { showErr('mfa-err', e.message); }
+}
+
+async function disableMfa(factorId) {
+  if (!confirm('¿Desactivar la verificación en dos pasos? Tu cuenta quedará protegida solo con contraseña.')) return;
+  try {
+    await fetch(`${SB_URL}/auth/v1/factors/${factorId}`, { method: 'DELETE', headers: getH() });
+    showOk('mfa-ok', 'Verificación en dos pasos desactivada.');
+    renderMfaStatus();
+  } catch(e) { showErr('mfa-err', e.message); }
+}
+
 async function doLogin() {
   const email    = document.getElementById('login-email').value.trim();
   const pass     = document.getElementById('login-pass').value;
@@ -2219,6 +2070,16 @@ async function doLogin() {
   btn.disabled = true; btn.textContent = 'Verificando...';
   try {
     const data = await authFetch('/token?grant_type=password', 'POST', { email, password: pass });
+    const verifiedFactors = (data.user?.factors || []).filter(f => f.status === 'verified');
+    if (verifiedFactors.length) {
+      _pendingMfaSession = data;
+      _pendingMfaFactor = verifiedFactors[0];
+      _pendingRemember = remember;
+      _pendingRememberEmail = email;
+      showMfaLogin();
+      btn.disabled = false; btn.textContent = 'Entrar';
+      return;
+    }
     _session = data;
     currentUser = data.user;
     if (remember) {
@@ -2372,25 +2233,6 @@ checkAuth();
       <button class="ba" onclick="closeRepeatDialog()">Cancelar</button>
       <button class="btn" style="background:var(--t1);" onclick="confirmRepeatConfirmada()">+ Confirmada</button>
       <button class="btn" onclick="confirmRepeat()">+ Pendiente</button>
-    </div>
-  </div>
-</div>
-<!-- Link Entidad Dialog -->
-<div id="link-entidad-dialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;align-items:center;justify-content:center;" onclick="if(event.target===this)closeLinkEntidad()">
-  <div style="background:var(--bg1);border-radius:var(--rl);padding:1.75rem;width:100%;max-width:360px;margin:1rem;box-shadow:var(--shadow-lg);">
-    <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:0.5rem;">Asociar entidad</div>
-    <div style="font-size:13px;color:var(--t2);margin-bottom:1.25rem;">Selecciona la entidad vinculada a esta donación.</div>
-    <div class="fgi" style="margin-bottom:0.75rem;">
-      <label>Buscar</label>
-      <input type="text" id="link-entidad-search" placeholder="Nombre de institución..." style="font-size:14px;padding:9px 12px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t1);" oninput="filterLinkEntidades()">
-    </div>
-    <div class="fgi" style="margin-bottom:1.5rem;">
-      <label>Entidad</label>
-      <select id="link-entidad-select" size="5" style="font-size:14px;padding:6px 8px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg1);color:var(--t1);height:auto;"></select>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="ba" onclick="closeLinkEntidad()">Cancelar</button>
-      <button class="btn" onclick="confirmLinkEntidad()">Guardar</button>
     </div>
   </div>
 </div>
