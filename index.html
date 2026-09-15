@@ -193,6 +193,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
 .pending-item-right { display: flex; align-items: center; gap: 8px; }
 .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 3rem; color: var(--t2); font-size: 13px; }
 .spinner { width: 18px; height: 18px; border: 2px solid var(--bt); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; }
+.btn-spinner { width: 12px; height: 12px; border: 2px solid rgba(15,110,86,.25); border-top-color: #0F6E56; border-radius: 50%; display: inline-block; animation: spin .7s linear infinite; vertical-align: -2px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── LOGIN ── */
@@ -974,7 +975,7 @@ function renderDashPending() {
     const days=daysUntil(p.due);
     const dueStr=days===null?'Sin fecha':days<0?`${Math.abs(days)}d vencida`:days===0?'Hoy':`${days}d`;
     const dueColor=days===null?'var(--t3)':days<0?'#A32D2D':days<=3?'#BA7517':'var(--t2)';
-    return `<div class="pending-item"><div><div class="pending-item-name">${name}</div>${p.monto?`<div class="pending-item-sub">${fmt(p.monto)}</div>`:''}</div><div class="pending-item-right"><span style="font-size:12px;color:${dueColor};font-weight:500;">${dueStr}</span><button class="confirm-btn" onclick="confirmPend('${p.id}')" style="padding:3px 8px;font-size:11px;">${SVG.confirm('#0F6E56')} OK</button></div></div>`;
+    return `<div class="pending-item"><div><div class="pending-item-name">${name}</div>${p.monto?`<div class="pending-item-sub">${fmt(p.monto)}</div>`:''}</div><div class="pending-item-right"><span style="font-size:12px;color:${dueColor};font-weight:500;">${dueStr}</span><button class="confirm-btn" onclick="confirmPend('${p.id}',this)" style="padding:3px 8px;font-size:11px;">${SVG.confirm('#0F6E56')} OK</button></div></div>`;
   }).join('');
 }
 
@@ -1143,7 +1144,7 @@ function renderPendientes() {
       <td style="text-align:right;" class="amount">${fmt(d.monto)}</td>
       <td style="color:var(--t2);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notas||''}</td>
       <td><div style="display:flex;gap:4px;">
-        <button class="confirm-btn" onclick="confirmPend('${d.id}')">${SVG.confirm('#0F6E56')} Confirmar</button>
+        <button class="confirm-btn" onclick="confirmPend('${d.id}',this)">${SVG.confirm('#0F6E56')} Confirmar</button>
         ${ib('edit',`startPend('${d.id}')`,'edit')}${ib('del',`delPend('${d.id}')`,'del')}
       </div></td>
     </tr>`;
@@ -1168,9 +1169,11 @@ async function delPend(id){
     renderMetrics(); renderReminder(); renderPendientes(); renderDashPending();
   } catch(e){ alert('Error: '+e.message); }
 }
-async function confirmPend(id) {
+async function confirmPend(id, btn) {
   const p=pendientes.find(x=>x.id===id);
   if(!p)return;
+  const original = btn ? btn.innerHTML : null;
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="btn-spinner"></span> Confirmando...'; }
   try {
     const newDon={fecha:today(),tipo:p.tipo,inst:p.inst,recv:p.recv,pais:p.pais,monto:p.monto,notas:p.notas,user_id:currentUser.id,meta_id:metaActiva?.id||null};
     const res=await sb('donaciones','POST',newDon);
@@ -1179,7 +1182,10 @@ async function confirmPend(id) {
     pendientes=pendientes.filter(x=>x.id!==id);
     renderMetrics(); renderReminder(); renderPendientes(); renderDonaciones(); renderDashPending();
     showOk('ok-don',`✓ ${p.recv||p.inst||'Donación'} confirmada y agregada al historial.`);
-  } catch(e){ alert('Error: '+e.message); }
+  } catch(e){
+    if(btn){ btn.disabled=false; btn.innerHTML=original; }
+    alert('Error: '+e.message);
+  }
 }
 
 // ── Config ──
