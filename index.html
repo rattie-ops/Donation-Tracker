@@ -8,8 +8,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <title>Tracker de Donaciones</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a2550'/><circle cx='50' cy='50' r='34' fill='none' stroke='white' stroke-width='7'/><path d='M57 38a8 8 0 0 0-7-4h-8a8 8 0 0 0 0 16h8a8 8 0 0 1 0 16h-8a8 8 0 0 1-7-4' fill='none' stroke='white' stroke-width='7' stroke-linecap='round'/><line x1='50' y1='28' x2='50' y2='34' stroke='white' stroke-width='7' stroke-linecap='round'/><line x1='50' y1='66' x2='50' y2='72' stroke='white' stroke-width='7' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --blue:    #1e6be6;
@@ -453,7 +455,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
         </div>
       </div>
       <div class="filters">
-        <input type="text" id="search-don" placeholder="Buscar donante, institución..." oninput="renderDonaciones()">
+        <input type="text" id="search-don" placeholder="Buscar donante, institución..." oninput="renderDonacionesDebounced()">
         <select id="ft-don" onchange="renderDonaciones()"></select>
         <select id="fp-don" onchange="renderDonaciones()"></select>
         <select id="fm-don" onchange="renderDonaciones()"><option value="">Todas las metas</option></select>
@@ -498,7 +500,7 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
         </div>
       </div>
       <div class="filters">
-        <input type="text" id="search-pend" placeholder="Buscar..." oninput="renderPendientes()">
+        <input type="text" id="search-pend" placeholder="Buscar..." oninput="renderPendientesDebounced()">
         <select id="ft-pend" onchange="renderPendientes()"></select>
         <select id="fp-pend" onchange="renderPendientes()"></select>
       </div>
@@ -735,13 +737,40 @@ tr.overdue td { background: rgba(239,68,68,0.05); }
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ── Supabase config ──
 const SB_URL = 'https://luzyensffwvfslurmqpw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1enllbnNmZnd2ZnNsdXJtcXB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTI3ODMsImV4cCI6MjA4OTg2ODc4M30.5DokAdH86kK7U9uNQWT2OCbaBOfpyYK7C0i0QJrM9i4';
 let _session = null; // set after login
+
+// ── Lazy-load heavy libraries (Chart.js, xlsx) instead of blocking initial page load ──
+function loadScript(src){
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src=src; s.onload=resolve; s.onerror=()=>reject(new Error('No se pudo cargar '+src));
+    document.head.appendChild(s);
+  });
+}
+let _chartPromise=null;
+function ensureChart(){
+  if(window.Chart) return Promise.resolve();
+  if(!_chartPromise) _chartPromise=loadScript('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js');
+  return _chartPromise;
+}
+let _xlsxPromise=null;
+function ensureXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  if(!_xlsxPromise) _xlsxPromise=loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+  return _xlsxPromise;
+}
+function debounce(fn, ms){
+  let t;
+  return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
+}
+// HTML-escape untrusted text before it goes into innerHTML (donor names, notes, etc. are free text from users)
+function esc(s){
+  return (s===undefined||s===null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 function getH() {
   const token = _session?.access_token || SB_KEY;
@@ -821,7 +850,7 @@ function today() { const d=new Date(); return `${d.getFullYear()}-${String(d.get
 function fmt(n) { return '$'+Number(n||0).toLocaleString('en-US'); }
 function fmtD(d) { if(!d)return'—'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0].slice(2)}`; }
 function daysUntil(s) { if(!s)return null; const t=new Date(); t.setHours(0,0,0,0); const u=new Date(s); u.setHours(0,0,0,0); return Math.round((u-t)/86400000); }
-function topts(sel) { return `<option value="">Sin categoría</option>`+tipos.map(t=>`<option value="${t}"${sel===t?' selected':''}>${t}</option>`).join(''); }
+function topts(sel) { return `<option value="">Sin categoría</option>`+tipos.map(t=>`<option value="${esc(t)}"${sel===t?' selected':''}>${esc(t)}</option>`).join(''); }
 function metaBadge(meta_id) {
   if (!meta_id) return '<span style="color:var(--t3);font-size:11px;">Sin meta</span>';
   const m = metas.find(x => x.id === meta_id);
@@ -853,7 +882,7 @@ function tipoBadge(tipo) {
   // Check if CSS class exists for known types
   const known = ['escuela','kolel','yeshiva','personal','construccion','instirucion','fundacion'];
   if (known.includes(key)) {
-    return `<span class="badge b-tipo-${key}" style="text-transform:capitalize;">${tipo}</span>`;
+    return `<span class="badge b-tipo-${key}" style="text-transform:capitalize;">${esc(tipo)}</span>`;
   }
   // Auto-assign a color from palette based on the type name
   if (!_tipoColorCache[key]) {
@@ -861,9 +890,9 @@ function tipoBadge(tipo) {
     _tipoColorCache[key] = BADGE_PALETTE[idx];
   }
   const c = _tipoColorCache[key];
-  return `<span class="badge" style="background:${c.bg};color:${c.color};border:1px solid ${c.border};text-transform:capitalize;">${tipo}</span>`;
+  return `<span class="badge" style="background:${c.bg};color:${c.color};border:1px solid ${c.border};text-transform:capitalize;">${esc(tipo)}</span>`;
 }
-function popts(sel) { return `<option value="">—</option>`+paises.map(p=>`<option value="${p}"${sel===p?' selected':''}>${p}</option>`).join(''); }
+function popts(sel) { return `<option value="">—</option>`+paises.map(p=>`<option value="${esc(p)}"${sel===p?' selected':''}>${esc(p)}</option>`).join(''); }
 function dueBadge(due) {
   const d=daysUntil(due);
   if(d===null) return '<span style="color:var(--t3)">Sin fecha</span>';
@@ -971,7 +1000,7 @@ function renderDashPending() {
   if(!items.length){list.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
   list.innerHTML=items.map(p=>{
-    const name=p.recv||p.inst||'Sin nombre';
+    const name=esc(p.recv||p.inst||'Sin nombre');
     const days=daysUntil(p.due);
     const dueStr=days===null?'Sin fecha':days<0?`${Math.abs(days)}d vencida`:days===0?'Hoy':`${days}d`;
     const dueColor=days===null?'var(--t3)':days<0?'#A32D2D':days<=3?'#BA7517':'var(--t2)';
@@ -996,30 +1025,32 @@ function renderDonaciones() {
   document.getElementById('don-empty').style.display='none';
   body.innerHTML=rows.map(d=>{
     if(editDon===d.id) return `<tr class="editing">
-      <td><input class="ii" type="date" id="ed-fecha" value="${d.fecha||''}" style="min-width:110px;"></td>
+      <td><input class="ii" type="date" id="ed-fecha" value="${esc(d.fecha||'')}" style="min-width:110px;"></td>
       <td>${metaBadge(d.meta_id)}</td>
       <td><select class="is" id="ed-tipo">${topts(d.tipo)}</select></td>
-      <td><input class="ii" id="ed-inst" value="${d.inst||''}"></td>
-      <td><input class="ii" id="ed-recv" value="${d.recv||''}"></td>
+      <td><input class="ii" id="ed-inst" value="${esc(d.inst||'')}"></td>
+      <td><input class="ii" id="ed-recv" value="${esc(d.recv||'')}"></td>
       <td><select class="is" id="ed-pais">${popts(d.pais)}</select></td>
-      <td><input class="ii" type="number" id="ed-monto" value="${d.monto||0}" style="text-align:right;min-width:80px;"></td>
-      <td><input class="ii" id="ed-notas" value="${d.notas||''}"></td>
+      <td><input class="ii" type="number" id="ed-monto" value="${esc(d.monto||0)}" style="text-align:right;min-width:80px;"></td>
+      <td><input class="ii" id="ed-notas" value="${esc(d.notas||'')}"></td>
       <td><div style="display:flex;gap:4px;">${ib('save',`saveDon('${d.id}')`,'save')}${ib('cancel','cancelDon()','cancel')}</div></td>
     </tr>`;
     return `<tr>
       <td style="color:var(--t2);white-space:nowrap;">${fmtD(d.fecha)}</td>
       <td>${metaBadge(d.meta_id)}</td>
       <td>${tipoBadge(d.tipo)}</td>
-      <td>${d.inst||`<span style="color:var(--t3);">—</span>`}</td>
-      <td>${d.recv||`<span style="color:var(--t3);">—</span>`}</td>
-      <td style="color:var(--t2);">${d.pais||'—'}</td>
+      <td>${d.inst?esc(d.inst):`<span style="color:var(--t3);">—</span>`}</td>
+      <td>${d.recv?esc(d.recv):`<span style="color:var(--t3);">—</span>`}</td>
+      <td style="color:var(--t2);">${esc(d.pais)||'—'}</td>
       <td style="text-align:right;" class="amount">${fmt(d.monto)}</td>
-      <td style="color:var(--t2);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notas||''}</td>
+      <td style="color:var(--t2);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.notas||'')}</td>
       <td><div style="display:flex;gap:4px;">${ib('edit',`startDon('${d.id}')`,'edit')}${ib('repeat',`repeatDon('${d.id}')`,'repeat')}${ib('del',`delDon('${d.id}')`,'del')}</div></td>
     </tr>`;
   }).join('');
 }
-function exportDonaciones() {
+const renderDonacionesDebounced = debounce(renderDonaciones, 180);
+async function exportDonaciones() {
+  await ensureXLSX();
   const rows = [...(_filteredDonaciones.length ? _filteredDonaciones : donaciones)]
     .sort((a,b) => (b.fecha||'') > (a.fecha||'') ? 1 : -1);
   if (!rows.length) { alert('No hay donaciones para exportar.'); return; }
@@ -1126,23 +1157,23 @@ function renderPendientes() {
   body.innerHTML=rows.map(d=>{
     const overdue=d.due&&daysUntil(d.due)<0;
     if(editPend===d.id) return `<tr class="editing">
-      <td><input class="ii" type="date" id="ep-due" value="${d.due||''}" style="min-width:110px;"></td>
+      <td><input class="ii" type="date" id="ep-due" value="${esc(d.due||'')}" style="min-width:110px;"></td>
       <td><select class="is" id="ep-tipo">${topts(d.tipo)}</select></td>
-      <td><input class="ii" id="ep-inst" value="${d.inst||''}"></td>
-      <td><input class="ii" id="ep-recv" value="${d.recv||''}"></td>
+      <td><input class="ii" id="ep-inst" value="${esc(d.inst||'')}"></td>
+      <td><input class="ii" id="ep-recv" value="${esc(d.recv||'')}"></td>
       <td><select class="is" id="ep-pais">${popts(d.pais)}</select></td>
-      <td><input class="ii" type="number" id="ep-monto" value="${d.monto||0}" style="text-align:right;min-width:80px;"></td>
-      <td><input class="ii" id="ep-notas" value="${d.notas||''}"></td>
+      <td><input class="ii" type="number" id="ep-monto" value="${esc(d.monto||0)}" style="text-align:right;min-width:80px;"></td>
+      <td><input class="ii" id="ep-notas" value="${esc(d.notas||'')}"></td>
       <td><div style="display:flex;gap:4px;">${ib('save',`savePend('${d.id}')`,'save')}${ib('cancel','cancelPend()','cancel')}</div></td>
     </tr>`;
     return `<tr${overdue?' class="overdue"':''}>
       <td style="white-space:nowrap;">${dueBadge(d.due)}</td>
       <td>${tipoBadge(d.tipo)}</td>
-      <td>${d.inst||`<span style="color:var(--t3);">—</span>`}</td>
-      <td>${d.recv||`<span style="color:var(--t3);">—</span>`}</td>
-      <td style="color:var(--t2);">${d.pais||'—'}</td>
+      <td>${d.inst?esc(d.inst):`<span style="color:var(--t3);">—</span>`}</td>
+      <td>${d.recv?esc(d.recv):`<span style="color:var(--t3);">—</span>`}</td>
+      <td style="color:var(--t2);">${esc(d.pais)||'—'}</td>
       <td style="text-align:right;" class="amount">${fmt(d.monto)}</td>
-      <td style="color:var(--t2);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notas||''}</td>
+      <td style="color:var(--t2);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.notas||'')}</td>
       <td><div style="display:flex;gap:4px;">
         <button class="confirm-btn" onclick="confirmPend('${d.id}',this)">${SVG.confirm('#0F6E56')} Confirmar</button>
         ${ib('edit',`startPend('${d.id}')`,'edit')}${ib('del',`delPend('${d.id}')`,'del')}
@@ -1150,6 +1181,7 @@ function renderPendientes() {
     </tr>`;
   }).join('');
 }
+const renderPendientesDebounced = debounce(renderPendientes, 180);
 function startPend(id){editPend=id;renderPendientes();}
 function cancelPend(){editPend=null;renderPendientes();}
 async function savePend(id){
@@ -1201,29 +1233,29 @@ async function loadPaises(){
 function renderConfigTipos(){
   document.getElementById('list-tipos').innerHTML=tiposData.length
     ?tiposData.map(t=>{
-        if(editTipo===t.id)return`<div class="ci"><input id="eti" value="${t.nombre}" onkeydown="if(event.key==='Enter')saveTipo('${t.id}')">${ib('save',`saveTipo('${t.id}')`,'save')}${ib('cancel','cancelTipo()','cancel')}</div>`;
-        return`<div class="ci"><span>${t.nombre}</span>${ib('edit',`startTipo('${t.id}')`,'edit')}${ib('del',`delTipo('${t.id}','${t.nombre}')`,'del')}</div>`;
+        if(editTipo===t.id)return`<div class="ci"><input id="eti" value="${esc(t.nombre)}" onkeydown="if(event.key==='Enter')saveTipo('${t.id}')">${ib('save',`saveTipo('${t.id}')`,'save')}${ib('cancel','cancelTipo()','cancel')}</div>`;
+        return`<div class="ci"><span>${esc(t.nombre)}</span>${ib('edit',`startTipo('${t.id}')`,'edit')}${ib('del',`delTipo('${t.id}')`,'del')}</div>`;
       }).join('')
     :'<p class="empty" style="padding:1rem 0;">Sin categorías.</p>';
 }
 function startTipo(id){editTipo=id;renderConfigTipos();document.getElementById('eti').focus();}
 function cancelTipo(){editTipo=null;renderConfigTipos();}
 async function saveTipo(id){const v=document.getElementById('eti').value.trim();if(!v)return;try{await fetch(`${SB_URL}/rest/v1/tipos?id=eq.${id}`,{method:'PATCH',headers:getH(),body:JSON.stringify({nombre:v})});editTipo=null;await loadTipos();renderConfigTipos();refreshSelects();}catch(e){alert('Error: '+e.message);}}
-async function delTipo(id,nombre){if(!confirm(`¿Eliminar "${nombre}"?`))return;try{await fetch(`${SB_URL}/rest/v1/tipos?id=eq.${id}`,{method:'DELETE',headers:getH()});await loadTipos();renderConfigTipos();refreshSelects();}catch(e){alert('Error: '+e.message);}}
+async function delTipo(id){const nombre=tiposData.find(t=>t.id===id)?.nombre||'';if(!confirm(`¿Eliminar "${nombre}"?`))return;try{await fetch(`${SB_URL}/rest/v1/tipos?id=eq.${id}`,{method:'DELETE',headers:getH()});await loadTipos();renderConfigTipos();refreshSelects();}catch(e){alert('Error: '+e.message);}}
 async function addTipo(){const inp=document.getElementById('new-tipo'),v=inp.value.trim();if(!v||tipos.includes(v))return;try{await sb('tipos','POST',{nombre:v,user_id:currentUser.id});inp.value='';await loadTipos();renderConfigTipos();refreshSelects();}catch(e){alert('Error: '+e.message);}}
 
 function renderConfigPaises(){
   document.getElementById('list-paises').innerHTML=paisesData.length
     ?paisesData.map(p=>{
-        if(editPais===p.id)return`<div class="ci"><input id="epi" value="${p.nombre}" onkeydown="if(event.key==='Enter')savePais('${p.id}')">${ib('save',`savePais('${p.id}')`,'save')}${ib('cancel','cancelPais()','cancel')}</div>`;
-        return`<div class="ci"><span>${p.nombre}</span>${ib('edit',`startPais('${p.id}')`,'edit')}${ib('del',`delPais('${p.id}','${p.nombre}')`,'del')}</div>`;
+        if(editPais===p.id)return`<div class="ci"><input id="epi" value="${esc(p.nombre)}" onkeydown="if(event.key==='Enter')savePais('${p.id}')">${ib('save',`savePais('${p.id}')`,'save')}${ib('cancel','cancelPais()','cancel')}</div>`;
+        return`<div class="ci"><span>${esc(p.nombre)}</span>${ib('edit',`startPais('${p.id}')`,'edit')}${ib('del',`delPais('${p.id}')`,'del')}</div>`;
       }).join('')
     :'<p class="empty" style="padding:1rem 0;">Sin países.</p>';
 }
 function startPais(id){editPais=id;renderConfigPaises();document.getElementById('epi').focus();}
 function cancelPais(){editPais=null;renderConfigPaises();}
 async function savePais(id){const v=document.getElementById('epi').value.trim();if(!v)return;try{await fetch(`${SB_URL}/rest/v1/paises?id=eq.${id}`,{method:'PATCH',headers:getH(),body:JSON.stringify({nombre:v})});editPais=null;await loadPaises();renderConfigPaises();refreshSelects();}catch(e){alert('Error: '+e.message);}}
-async function delPais(id,nombre){if(!confirm(`¿Eliminar "${nombre}"?`))return;try{await fetch(`${SB_URL}/rest/v1/paises?id=eq.${id}`,{method:'DELETE',headers:getH()});await loadPaises();renderConfigPaises();refreshSelects();}catch(e){alert('Error: '+e.message);}}
+async function delPais(id){const nombre=paisesData.find(p=>p.id===id)?.nombre||'';if(!confirm(`¿Eliminar "${nombre}"?`))return;try{await fetch(`${SB_URL}/rest/v1/paises?id=eq.${id}`,{method:'DELETE',headers:getH()});await loadPaises();renderConfigPaises();refreshSelects();}catch(e){alert('Error: '+e.message);}}
 async function addPais(){const inp=document.getElementById('new-pais'),v=inp.value.trim();if(!v||paises.includes(v))return;try{await sb('paises','POST',{nombre:v,user_id:currentUser.id});inp.value='';await loadPaises();renderConfigPaises();refreshSelects();}catch(e){alert('Error: '+e.message);}}
 
 // ── Metas ──
@@ -1365,7 +1397,8 @@ async function addPendiente(){
 // ── Charts ──
 let charts={};
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
-function renderCharts(prefix){
+async function renderCharts(prefix){
+  await ensureChart();
   const byT={},byP={};
   const srcDon = metaActiva ? donaciones.filter(d=>d.meta_id===metaActiva.id) : donaciones;
   const srcPen = metaActiva ? pendientes.filter(p=>p.meta_id===metaActiva.id) : pendientes;
@@ -1467,12 +1500,12 @@ async function renderEntidades() {
   if (!entidades.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
   body.innerHTML = entidades.map(e => `<tr>
-    <td style="font-weight:500;">${e.nombre_institucion||'—'}</td>
-    <td>${e.nombre_representante||'—'}</td>
-    <td style="color:var(--t2);">${e.pais_ciudad||'—'}</td>
-    <td style="color:var(--t2);">${e.teuda_numero||'—'}</td>
+    <td style="font-weight:500;">${esc(e.nombre_institucion)||'—'}</td>
+    <td>${esc(e.nombre_representante)||'—'}</td>
+    <td style="color:var(--t2);">${esc(e.pais_ciudad)||'—'}</td>
+    <td style="color:var(--t2);">${esc(e.teuda_numero)||'—'}</td>
     <td style="color:var(--t2);white-space:nowrap;">${e.fecha_expiracion?fmtD(e.fecha_expiracion):'—'}</td>
-    <td style="color:var(--t2);">${e.num_alumnos||'—'}</td>
+    <td style="color:var(--t2);">${esc(e.num_alumnos)||'—'}</td>
     <td><div style="display:flex;gap:4px;">
       ${ib('edit',`editEntidad('${e.id}')`, 'edit')}
       ${ib('del',`delEntidad('${e.id}')`, 'del')}
@@ -1778,8 +1811,9 @@ function processPaste() {
   renderImportPreview();
 }
 
-function handleFile(file) {
+async function handleFile(file) {
   if (!file) return;
+  await ensureXLSX();
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
@@ -1835,11 +1869,11 @@ function renderImportPreview() {
       <td style="white-space:nowrap;">${fmtD(r.fecha)||r.fecha||'—'}</td>
       <td>${metaCell}</td>
       <td>${tipoBadge(r.tipo)}</td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.inst||'—'}</td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.recv||'—'}</td>
-      <td style="color:var(--t2);">${r.pais||'—'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.inst)||'—'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.recv)||'—'}</td>
+      <td style="color:var(--t2);">${esc(r.pais)||'—'}</td>
       <td style="text-align:right;" class="amount">${fmt(r.monto)}</td>
-      <td style="color:var(--t2);font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.notas||''}</td>
+      <td style="color:var(--t2);font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.notas||'')}</td>
       <td style="font-size:12px;font-weight:500;color:${statusColor};">${statusText}</td>
     </tr>`;
   }).join('');
@@ -1862,7 +1896,7 @@ async function confirmImport() {
       importRows[i]._status = 'error';
       errors++;
     }
-    renderImportPreview();
+    if (i % 10 === 0 || i === importRows.length - 1) renderImportPreview();
   }
   renderMetrics(); renderDonaciones();
   if (errors === 0) {
@@ -1913,6 +1947,7 @@ function showApp() {
   if (currentUser?.email) {
     document.getElementById('topbar-email').textContent = currentUser.email;
   }
+  ensureChart(); // precargar en paralelo con loadAll(), sin bloquear
 }
 function showLogin() {
   document.querySelector('.sidebar').style.display = 'none';
