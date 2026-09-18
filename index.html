@@ -1883,20 +1883,31 @@ async function confirmImport() {
   const btn = document.getElementById('btn-import');
   btn.disabled = true; btn.textContent = 'Importando...';
   let ok = 0, errors = 0;
-  for (let i = 0; i < importRows.length; i++) {
-    const r = importRows[i];
-    if (r._status === 'ok') continue;
+  const toImportRow = r => ({ fecha: r.fecha, tipo: r.tipo, inst: r.inst, recv: r.recv, pais: r.pais, monto: r.monto, notas: r.notas, user_id: currentUser.id, meta_id: metaActiva?.id || null });
+  const pending = importRows.map((r,i)=>({i,r})).filter(x=>x.r._status!=='ok');
+  const CHUNK = 50; // registros por request — 1 round-trip a Supabase en vez de 1 por fila
+  for (let c = 0; c < pending.length; c += CHUNK) {
+    const chunk = pending.slice(c, c + CHUNK);
     try {
-      const data = { fecha: r.fecha, tipo: r.tipo, inst: r.inst, recv: r.recv, pais: r.pais, monto: r.monto, notas: r.notas, user_id: currentUser.id, meta_id: metaActiva?.id || null };
-      const res = await sb('donaciones', 'POST', data);
-      if (res && res[0]) donaciones.unshift(res[0]);
-      importRows[i]._status = 'ok';
-      ok++;
+      // Camino rápido: insertar el lote entero en un solo POST
+      const res = await sb('donaciones', 'POST', chunk.map(({r}) => toImportRow(r)));
+      if (Array.isArray(res)) donaciones.unshift(...res);
+      chunk.forEach(({i}) => { importRows[i]._status = 'ok'; ok++; });
     } catch(e) {
-      importRows[i]._status = 'error';
-      errors++;
+      // Si el lote falla (ej. un dato inválido), reintentar fila por fila para aislar cuál
+      for (const {i, r} of chunk) {
+        try {
+          const res = await sb('donaciones', 'POST', toImportRow(r));
+          if (res && res[0]) donaciones.unshift(res[0]);
+          importRows[i]._status = 'ok';
+          ok++;
+        } catch(e2) {
+          importRows[i]._status = 'error';
+          errors++;
+        }
+      }
     }
-    if (i % 10 === 0 || i === importRows.length - 1) renderImportPreview();
+    renderImportPreview();
   }
   renderMetrics(); renderDonaciones();
   if (errors === 0) {
