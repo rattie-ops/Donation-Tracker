@@ -430,7 +430,6 @@ body:not(.is-admin) .admin-only { display: none !important; }
           <div class="fgi"><label>Meta</label><div id="nd-meta-info" style="padding:10px 12px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg2);font-size:13px;color:var(--t2);">—</div></div>
           <div class="fgi ff"><label>Notas</label><textarea id="nd-notas" placeholder="Comentarios adicionales..."></textarea></div>
         </div>
-        <div style="margin-top:1rem;"><label class="chk"><input type="checkbox" id="nd-pagado"> Ya fue pagada</label></div>
         <div class="donor-block">
           <div class="donor-block-head">
             <span class="lbl">Donantes y montos (USD)</span>
@@ -778,8 +777,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
     <div id="repeat-dialog-name" style="font-size:13px;color:var(--t2);margin-bottom:1.25rem;"></div>
     <div class="fgi" style="margin-bottom:1rem;"><label>Donante</label><select id="repeat-donante"></select></div>
     <div class="fgi" style="margin-bottom:1rem;"><label>Monto (USD)</label><input type="number" id="repeat-monto" min="0" step="0.01"></div>
-    <div class="fgi" style="margin-bottom:1rem;"><label>Fecha esperada (solo pendiente)</label><input type="date" id="repeat-due"></div>
-    <div style="margin-bottom:1.5rem;"><label class="chk"><input type="checkbox" id="repeat-pagado"> Pagada (solo confirmada)</label></div>
+    <div class="fgi" style="margin-bottom:1.5rem;"><label>Fecha esperada (solo pendiente)</label><input type="date" id="repeat-due"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
       <button class="ba" onclick="closeRepeatDialog()">Cancelar</button>
       <button class="btn" style="background:var(--t1);color:var(--bg1);" onclick="confirmRepeat('don')">+ Confirmada</button>
@@ -1104,7 +1102,7 @@ function getDonorAmounts(p) {
 // ════════════════════════════════════════════════════════════
 function openForm(type) {
   const f=$('form-'+type); f.style.display='block';
-  if(type==='don'){ $('nd-fecha').value=today(); $('nd-pagado').checked=false; refreshSelects(); renderMetaInfo(); renderDonorRows('nd'); }
+  if(type==='don'){ $('nd-fecha').value=today(); refreshSelects(); renderMetaInfo(); renderDonorRows('nd'); }
   if(type==='pend'){ $('np-fecha').value=today(); refreshSelects(); renderDonorRows('np'); }
   f.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -1137,11 +1135,11 @@ async function addDonacion() {
   const btn=$('btn-don'); btn.disabled=true; btn.textContent='Guardando...';
   try {
     const grupo_id=uuid();
-    const header={fecha, tipo:$('nd-tipo').value||null, inst:$('nd-inst').value.trim(), recv:$('nd-recv').value.trim(), pais:$('nd-pais').value||null, notas:$('nd-notas').value.trim(), pagado:$('nd-pagado').checked, meta_id:metaActiva?.id||null, grupo_id};
+    const header={fecha, tipo:$('nd-tipo').value||null, inst:$('nd-inst').value.trim(), recv:$('nd-recv').value.trim(), pais:$('nd-pais').value||null, notas:$('nd-notas').value.trim(), pagado:false, meta_id:metaActiva?.id||null, grupo_id};
     const res=await sb(T.don,'POST',rows.map(r=>({...header,...r})));
     donaciones.unshift(...res);
     ['nd-inst','nd-recv','nd-notas'].forEach(id=>$(id).value='');
-    $('nd-tipo').value=''; $('nd-pais').value=''; $('nd-pagado').checked=false;
+    $('nd-tipo').value=''; $('nd-pais').value='';
     const tot=rows.reduce((a,r)=>a+r.monto,0);
     showOk('ok-don',`✓ ${res.length} registro${res.length>1?'s':''} creado${res.length>1?'s':''} · ${fmt(tot)}`);
     renderDonorRows('nd');
@@ -1246,7 +1244,7 @@ function repeatDon(id){
   $('repeat-dialog-name').textContent=`${d.inst||d.recv||'Sin nombre'} · ${fmt(d.monto)}`;
   $('repeat-donante').innerHTML=donOpts(d.donante_id);
   $('repeat-monto').value=num(d.monto);
-  $('repeat-due').value=''; $('repeat-pagado').checked=false;
+  $('repeat-due').value='';
   $('repeat-dialog').style.display='flex';
   setTimeout(()=>$('repeat-monto').select(),50);
 }
@@ -1258,7 +1256,7 @@ async function confirmRepeat(target){
   const base={fecha:today(),donante_id,tipo:d.tipo,inst:d.inst,recv:d.recv,pais:d.pais,monto,notas:d.notas,meta_id:metaActiva?.id||null};
   try {
     if(target==='don'){
-      const res=await sb(T.don,'POST',{...base,pagado:$('repeat-pagado').checked});
+      const res=await sb(T.don,'POST',{...base,pagado:false});
       if(res[0]) donaciones.unshift(res[0]);
       showOk('ok-don','✓ Agregada a confirmadas.');
     } else {
