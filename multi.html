@@ -277,6 +277,11 @@ button.badge:hover { transform: translateY(-1px); }
   .dr-search { min-width: 0; flex: 1; }
 }
 .app-hidden { display: none !important; }
+/* ── APLICAR APORTES ── */
+.dr input[type=checkbox] { width:17px; height:17px; padding:0; accent-color:var(--blue); flex-shrink:0; cursor:pointer; box-shadow:none; }
+label.dr { cursor:pointer; }
+.dr .dr-amt { font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.dr.nofit { opacity:.6; }
 /* ── ROLES ── */
 body.ro .ib:not(.cancel), body.ro .page-head .btn, body.ro .confirm-btn, body.ro .ar, body.ro .form-card, body.ro .edit-only { display: none !important; }
 body.ro button.badge { pointer-events: none; }
@@ -555,17 +560,29 @@ body:not(.is-admin) .admin-only { display: none !important; }
         </button>
       </div>
       <div id="form-aporte" class="card form-card">
-        <div class="form-title">Nuevo aporte</div>
+        <div class="form-title" id="aporte-form-title">Nuevo aporte</div>
         <div id="ok-aporte" class="ok-msg"></div>
         <div id="err-aporte" class="err-msg"></div>
         <div class="fg">
-          <div class="fgi"><label>Donante</label><select id="ap-donante" onchange="renderApFormSaldo()"></select></div>
+          <div class="fgi"><label>Donante</label><select id="ap-donante" onchange="_apSel.clear();renderApFormSaldo()"></select></div>
           <div class="fgi"><label>Fecha</label><input type="date" id="ap-fecha"></div>
-          <div class="fgi"><label>Monto (USD)</label><input type="number" id="ap-monto" min="0" step="0.01" placeholder="0"></div>
+          <div class="fgi"><label>Monto (USD)</label><input type="number" id="ap-monto" min="0" step="0.01" placeholder="0" oninput="updApApply()"></div>
           <div class="fgi"><label>Método</label><select id="ap-metodo"><option value="">—</option><option>Transferencia</option><option>ACH</option><option>Cheque</option><option>Efectivo</option><option>Tarjeta</option><option>Otro</option></select></div>
           <div class="fgi"><label>Referencia</label><input type="text" id="ap-ref" placeholder="No. transferencia / cheque"></div>
           <div class="fgi"><label>Saldo actual</label><div id="ap-saldo-info" style="padding:10px 12px;border-radius:var(--rm);border:1px solid var(--bt);background:var(--bg2);font-size:13px;color:var(--t2);font-weight:600;">—</div></div>
           <div class="fgi ff"><label>Notas</label><textarea id="ap-notas"></textarea></div>
+        </div>
+        <div id="ap-apply" class="donor-block" style="display:none;">
+          <div class="donor-block-head">
+            <span class="lbl">Aplicar a donaciones por pagar</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="ba" onclick="aplicarPorAntiguedad()">Aplicar por antigüedad</button>
+              <button type="button" class="btn-ghost" style="padding:7px 12px;font-size:12px;" onclick="_apSel.clear();renderApApply()">Ninguna</button>
+            </div>
+          </div>
+          <div id="ap-apply-list" class="donor-rows"></div>
+          <div class="donor-total"><span id="ap-apply-sel">0 seleccionadas · $0</span><span id="ap-apply-disp"></span></div>
+          <p style="font-size:12px;color:var(--t3);margin-top:6px;">Las seleccionadas quedan <b>pagadas</b> con la fecha del aporte. Disponible = total aportado − donaciones ya pagadas.</p>
         </div>
         <div style="margin-top:1.25rem;display:flex;gap:8px;">
           <button class="btn" id="btn-aporte" onclick="addAporte()">Registrar aporte</button>
@@ -579,7 +596,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
       <div id="ap-summary" class="metrics" style="display:none;"></div>
       <div class="card" style="padding:0;">
         <div class="tbl-wrap">
-          <table><thead><tr><th>Fecha</th><th>Donante</th><th class="r">Monto</th><th>Método</th><th>Referencia</th><th>Notas</th><th style="width:68px;"></th></tr></thead><tbody id="ap-body"></tbody></table>
+          <table><thead><tr><th>Fecha</th><th>Donante</th><th class="r">Monto</th><th>Aplicado a</th><th>Método</th><th>Referencia</th><th>Notas</th><th style="width:150px;"></th></tr></thead><tbody id="ap-body"></tbody></table>
         </div>
         <p id="ap-empty" class="empty" style="display:none;">No hay aportes.</p>
         <div id="ap-foot" class="tbl-foot"></div>
@@ -1183,7 +1200,7 @@ function cancelDon(){editDon=null;renderDonaciones();}
 async function saveDon(id){
   const fecha=$('ed-fecha').value, monto=parseFloat($('ed-monto').value)||0, donante_id=$('ed-donante').value;
   if(!fecha||!monto||!donante_id){alert('Fecha, donante y monto requeridos.');return;}
-  const data={fecha,donante_id,monto,pagado:$('ed-pagado').checked,tipo:$('ed-tipo').value||null,inst:$('ed-inst').value.trim(),recv:$('ed-recv').value.trim(),pais:$('ed-pais').value||null,notas:$('ed-notas').value.trim()};
+  const data={fecha,donante_id,monto,pagado:$('ed-pagado').checked,...($('ed-pagado').checked?{}:{aporte_id:null}),tipo:$('ed-tipo').value||null,inst:$('ed-inst').value.trim(),recv:$('ed-recv').value.trim(),pais:$('ed-pais').value||null,notas:$('ed-notas').value.trim()};
   try {
     const res=await sb(T.don,'PATCH',data,`?id=eq.${id}`);
     const idx=donaciones.findIndex(d=>d.id===id); if(idx>=0) donaciones[idx]=res[0]||{...donaciones[idx],...data};
@@ -1194,7 +1211,7 @@ async function togglePagado(id){
   const d=donaciones.find(x=>x.id===id); if(!d) return;
   const pagado=!d.pagado;
   try {
-    const res=await sb(T.don,'PATCH',{pagado,fecha_pago:pagado?today():null},`?id=eq.${id}`);
+    const res=await sb(T.don,'PATCH',{pagado,fecha_pago:pagado?today():null,...(pagado?{}:{aporte_id:null})},`?id=eq.${id}`);
     Object.assign(d,res[0]||{pagado});
     renderAllViews();
   } catch(e){ alert('Error: '+e.message); }
@@ -1431,8 +1448,16 @@ function renderSaldos() {
 // ════════════════════════════════════════════════════════════
 // APORTES
 // ════════════════════════════════════════════════════════════
+let _apSel=new Set(), _apModeId=null;
+function setApMode(aporte) {
+  _apModeId=aporte?aporte.id:null; _apSel.clear();
+  ['ap-donante','ap-fecha','ap-monto','ap-metodo','ap-ref','ap-notas'].forEach(id=>$(id).disabled=!!aporte);
+  $('aporte-form-title').textContent=aporte?'Aplicar aporte a donaciones':'Nuevo aporte';
+  $('btn-aporte').textContent=aporte?'Aplicar selección':'Registrar aporte';
+}
 function openAporteForm(donId) {
   refreshSelects();
+  setApMode(null);
   const sel = donId || $('ap-filter-don').value || '';
   $('ap-donante').innerHTML=donOpts(sel);
   $('ap-fecha').value=today(); $('ap-monto').value=''; $('ap-metodo').value=''; $('ap-ref').value=''; $('ap-notas').value='';
@@ -1446,21 +1471,94 @@ function renderApFormSaldo() {
   if(!id){ el.innerHTML='—'; return; }
   const s=calcSaldos()[id];
   el.innerHTML=`<span class="${s.saldo<0?'neg':'pos'}">${fmt(s.saldo)}</span> <span style="font-weight:500;color:var(--t3);">· aportado ${fmt(s.aportado)} · donado ${fmt(s.donado)}</span>`;
+  renderApApply();
+}
+function openAplicarAporte(id) {
+  const a=aportes.find(x=>x.id===id); if(!a) return;
+  refreshSelects();
+  $('ap-donante').innerHTML=donOpts(a.donante_id);
+  $('ap-fecha').value=a.fecha||today(); $('ap-monto').value=num(a.monto);
+  $('ap-metodo').value=a.metodo||''; $('ap-ref').value=a.referencia||''; $('ap-notas').value=a.notas||'';
+  setApMode(a);
+  renderApFormSaldo();
+  $('form-aporte').style.display='block';
+  $('form-aporte').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+// donaciones por pagar del donante, más antiguas primero
+function apPorPagar(donId) {
+  return donaciones.filter(d=>d.donante_id===donId&&!d.pagado)
+    .sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')||(a.created_at||'').localeCompare(b.created_at||''));
+}
+// disponible = aportado − pagado (+ el monto del aporte nuevo que se está registrando)
+function apDisponible(donId) {
+  const s=calcSaldos()[donId]; if(!s) return 0;
+  const nuevo=_apModeId?0:(parseFloat($('ap-monto').value)||0);
+  return Math.round((s.aportado-s.pagado+nuevo)*100)/100;
+}
+function renderApApply() {
+  const donId=$('ap-donante').value, box=$('ap-apply');
+  const list=donId?apPorPagar(donId):[];
+  if(!donId||!list.length){ box.style.display=donId?'block':'none'; $('ap-apply-list').innerHTML=donId?'<p class="empty" style="padding:1rem;">Este donante no tiene donaciones por pagar.</p>':''; updApApply(); return; }
+  box.style.display='block';
+  $('ap-apply-list').innerHTML=list.map(d=>`<label class="dr${_apSel.has(d.id)?' has':''}" data-id="${d.id}">
+    <input type="checkbox"${_apSel.has(d.id)?' checked':''} onchange="toggleApSel('${d.id}',this.checked)">
+    <div class="dr-name">${esc(d.inst||d.recv||'Sin institución')}<div class="sub">${fmtD(d.fecha)}${d.tipo?' · '+esc(d.tipo):''}${d.pais?' · '+esc(d.pais):''}</div></div>
+    <span class="dr-amt">${fmt(d.monto)}</span>
+  </label>`).join('');
+  updApApply();
+}
+function toggleApSel(id,on){ on?_apSel.add(id):_apSel.delete(id); const r=document.querySelector(`#ap-apply-list .dr[data-id="${id}"]`); if(r) r.classList.toggle('has',on); updApApply(); }
+function updApApply() {
+  const donId=$('ap-donante').value; if(!donId) return;
+  const list=apPorPagar(donId), disp=apDisponible(donId);
+  const sel=list.filter(d=>_apSel.has(d.id)), tot=sel.reduce((a,d)=>a+num(d.monto),0), queda=Math.round((disp-tot)*100)/100;
+  $('ap-apply-sel').textContent=`${sel.length} seleccionada${sel.length===1?'':'s'} · ${fmt(tot)}`;
+  $('ap-apply-disp').innerHTML=`Disponible ${fmt(disp)} · Queda <span class="${queda<0?'neg':'pos'}">${fmt(queda)}</span>`;
+  // marcar las que ya no caben
+  let rem=queda;
+  document.querySelectorAll('#ap-apply-list .dr').forEach(r=>{ const d=list.find(x=>x.id===r.dataset.id); if(d) r.classList.toggle('nofit', !_apSel.has(d.id) && num(d.monto)>rem+0.005); });
+}
+function aplicarPorAntiguedad() {
+  const donId=$('ap-donante').value; if(!donId) return;
+  _apSel.clear();
+  let rem=apDisponible(donId);
+  for(const d of apPorPagar(donId)){ if(num(d.monto)<=rem+0.005){ _apSel.add(d.id); rem-=num(d.monto); } else break; }
+  renderApApply();
+  if(!_apSel.size) showErr('err-aporte','El disponible no alcanza para la donación más antigua.');
+}
+async function marcarPagadas(ids, aporte_id, fecha) {
+  if(!ids.length) return 0;
+  const res=await sb(T.don,'PATCH',{pagado:true,fecha_pago:fecha,aporte_id},`?id=in.(${ids.join(',')})`);
+  res.forEach(r=>{ const d=donaciones.find(x=>x.id===r.id); if(d) Object.assign(d,r); });
+  return res.length;
 }
 async function addAporte() {
   const donante_id=$('ap-donante').value, monto=Math.round((parseFloat($('ap-monto').value)||0)*100)/100, fecha=$('ap-fecha').value||today();
   if(!donante_id||!monto){ showErr('err-aporte','Donante y monto requeridos.'); return; }
-  const btn=$('btn-aporte'); btn.disabled=true; btn.textContent='Guardando...';
+  const ids=apPorPagar(donante_id).filter(d=>_apSel.has(d.id)).map(d=>d.id);
+  if(_apModeId&&!ids.length){ showErr('err-aporte','Selecciona al menos una donación.'); return; }
+  const tot=donaciones.filter(d=>ids.includes(d.id)).reduce((a,d)=>a+num(d.monto),0), disp=apDisponible(donante_id);
+  if(tot>disp+0.005 && !confirm(`Lo seleccionado (${fmt(tot)}) supera el disponible (${fmt(disp)}).\nEl donante quedará con saldo negativo.\n\n¿Continuar?`)) return;
+  const btn=$('btn-aporte'), label=btn.textContent; btn.disabled=true; btn.textContent='Guardando...';
   try {
-    const res=await sb(T.aportes,'POST',{donante_id,monto,fecha,metodo:$('ap-metodo').value||null,referencia:$('ap-ref').value.trim()||null,notas:$('ap-notas').value.trim()||null});
-    if(res[0]) aportes.unshift(res[0]);
-    aportes.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-    showOk('ok-aporte',`✓ Aporte de ${fmt(monto)} registrado para ${donName(donante_id)}.`);
-    $('ap-monto').value=''; $('ap-ref').value=''; $('ap-notas').value='';
+    let aporteId=_apModeId, msg='';
+    if(!_apModeId){
+      const res=await sb(T.aportes,'POST',{donante_id,monto,fecha,metodo:$('ap-metodo').value||null,referencia:$('ap-ref').value.trim()||null,notas:$('ap-notas').value.trim()||null});
+      if(res[0]){ aportes.unshift(res[0]); aporteId=res[0].id; }
+      aportes.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+      msg=`✓ Aporte de ${fmt(monto)} registrado para ${donName(donante_id)}`;
+    }
+    if(ids.length){
+      try { const n=await marcarPagadas(ids,aporteId,fecha); msg+=(msg?' · ':'✓ ')+`${n} ${n===1?'donación':'donaciones'} marcada${n===1?'':'s'} como pagada${n===1?'':'s'} (${fmt(tot)})`; }
+      catch(e){ showErr('err-aporte',(msg?'Aporte guardado, pero ':'')+'no se pudieron marcar las donaciones: '+e.message); _apSel.clear(); renderApFormSaldo(); renderAllViews(); btn.disabled=false; btn.textContent=label; return; }
+    }
+    showOk('ok-aporte',msg+'.');
+    _apSel.clear();
+    if(!_apModeId){ $('ap-monto').value=''; $('ap-ref').value=''; $('ap-notas').value=''; }
     renderApFormSaldo(); renderAllViews();
-    setTimeout(()=>closeForm('aporte'),1500);
+    setTimeout(()=>closeForm('aporte'),1800);
   } catch(e){ showErr('err-aporte',e.message); }
-  btn.disabled=false; btn.textContent='Registrar aporte';
+  btn.disabled=false; btn.textContent=label;
 }
 function renderAportes() {
   const fd=$('ap-filter-don').value, q=($('search-ap').value||'').toLowerCase();
@@ -1486,6 +1584,7 @@ function renderAportes() {
       <td><input class="ii" type="date" id="ea-fecha" value="${a.fecha||''}" style="min-width:120px;"></td>
       <td><select class="is" id="ea-donante">${donOpts(a.donante_id)}</select></td>
       <td><input class="ii" type="number" step="0.01" id="ea-monto" value="${num(a.monto)}" style="text-align:right;min-width:90px;"></td>
+      <td></td>
       <td><select class="is" id="ea-metodo"><option value="">—</option>${metodos.map(m=>`<option${a.metodo===m?' selected':''}>${m}</option>`).join('')}</select></td>
       <td><input class="ii" id="ea-ref" value="${esc(a.referencia)}"></td>
       <td><input class="ii" id="ea-notas" value="${esc(a.notas)}"></td>
@@ -1495,10 +1594,11 @@ function renderAportes() {
       <td style="color:var(--t2);white-space:nowrap;">${fmtD(a.fecha)}</td>
       <td>${donBadge(a.donante_id)}</td>
       <td class="r amount pos">${fmt(a.monto)}</td>
+      <td>${(()=>{const ap=donaciones.filter(d=>d.aporte_id===a.id); return ap.length?`<button class="linkish" style="font-size:12px;" onclick="verDonacionesDe('${a.donante_id}')">${fmt(ap.reduce((s,d)=>s+num(d.monto),0))} · ${ap.length} don.</button>`:'<span style="color:var(--t3);font-size:12px;">—</span>';})()}</td>
       <td style="color:var(--t2);">${dash(a.metodo)}</td>
       <td style="color:var(--t2);">${dash(a.referencia)}</td>
       <td style="color:var(--t2);font-size:12px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(a.notas)}">${esc(a.notas)}</td>
-      <td><div style="display:flex;gap:4px;">${ib('edit',`startAporte('${a.id}')`,'edit','Editar')}${ib('del',`delAporte('${a.id}')`,'del','Eliminar')}</div></td>
+      <td><div style="display:flex;gap:4px;justify-content:flex-end;">${apPorPagar(a.donante_id).length?`<button class="confirm-btn" style="padding:5px 9px;" onclick="openAplicarAporte('${a.id}')">Aplicar</button>`:''}${ib('edit',`startAporte('${a.id}')`,'edit','Editar')}${ib('del',`delAporte('${a.id}')`,'del','Eliminar')}</div></td>
     </tr>`;
   }).join('');
   $('ap-foot').style.display='flex';
@@ -1518,8 +1618,18 @@ async function saveAporte(id){
 }
 async function delAporte(id){
   if(!confirm('¿Eliminar este aporte?'))return;
-  try { await sb(T.aportes,'DELETE',null,`?id=eq.${id}`); aportes=aportes.filter(a=>a.id!==id); renderAllViews(); }
-  catch(e){ alert('Error: '+e.message); }
+  const ligadas=donaciones.filter(d=>d.aporte_id===id);
+  const revertir=ligadas.length && confirm(`Este aporte pagó ${ligadas.length} ${ligadas.length===1?'donación':'donaciones'} (${fmt(ligadas.reduce((s,d)=>s+num(d.monto),0))}).\n\n¿Volverlas a "Por pagar"?\n(Cancelar = quedan pagadas)`);
+  try {
+    if(revertir){
+      const res=await sb(T.don,'PATCH',{pagado:false,fecha_pago:null,aporte_id:null},`?aporte_id=eq.${id}`);
+      res.forEach(r=>{ const d=donaciones.find(x=>x.id===r.id); if(d) Object.assign(d,r); });
+    }
+    await sb(T.aportes,'DELETE',null,`?id=eq.${id}`);
+    aportes=aportes.filter(a=>a.id!==id);
+    donaciones.forEach(d=>{ if(d.aporte_id===id) d.aporte_id=null; });
+    renderAllViews();
+  } catch(e){ alert('Error: '+e.message); }
 }
 
 // ════════════════════════════════════════════════════════════
